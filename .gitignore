@@ -10,3 +10,4 @@ src/Makevars.win
 src/.cargo
 src/rust/target
 src/rust/vendor
+.claude*
