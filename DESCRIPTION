@@ -8,7 +8,7 @@ Description: A thin wrapper around the Rust crate 'llm_json' for repairing
     Models. Handles missing quotes, trailing commas, unquoted keys, and other
     common JSON syntax errors.
 License: MIT + file LICENSE
-URL: https://github.com/DyfanJones/llmjson
+URL: https://github.com/DyfanJones/llmjson, https://dyfanjones.r-universe.dev/llmjson
 BugReports: https://github.com/DyfanJones/llmjson/issues
 Depends:
     R (>= 4.2)
