@@ -20,8 +20,8 @@
 You can install the development version of llmjson from GitHub:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("DyfanJones/llmjson")
+# install.packages("remotes")
+remotes::install_github("DyfanJones/llmjson")
 ```
 
 ### System Requirements
