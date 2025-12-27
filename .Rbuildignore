@@ -1,0 +1,13 @@
+^llmjson\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^\.github$
+^codecov\.yml$
+^cran-comments\.md$
+^src/\.cargo$
+^src/rust/target$
+^src/rust/vendor$
+^rust-toolchain\.toml$
+^src/Makevars$
+^src/Makevars\.win$
