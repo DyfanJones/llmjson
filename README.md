@@ -112,3 +112,7 @@ While R has several JSON parsing packages like `jsonlite`, they typically fail w
 ## Acknowledgments
 
 This package is a thin wrapper around the [llm_json](https://github.com/oramasearch/llm_json) Rust crate, which is itself a Rust port of the Python [json_repair](https://github.com/mangiucugna/json_repair) library by mangiucugna.
+
+## Code of Conduct
+
+Please note that the llmjson project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/1/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.

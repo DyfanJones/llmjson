@@ -11,3 +11,4 @@
 ^rust-toolchain\.toml$
 ^src/Makevars$
 ^src/Makevars\.win$
+^CODE_OF_CONDUCT\.md$
