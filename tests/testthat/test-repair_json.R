@@ -231,7 +231,7 @@ test_that("schema with return_objects validates and converts types", {
   expect_equal(result$age, 30L)
 })
 
-test_that("schema applies defaults for missing optional fields with return_objects = TRUE", {
+test_that("schema omits missing optional fields even with defaults (return_objects = TRUE)", {
   schema <- s_map(
     name = s_string(),
     age = s_integer(.optional = TRUE, .default = 0L)
@@ -244,10 +244,10 @@ test_that("schema applies defaults for missing optional fields with return_objec
   )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
-  expect_equal(result$age, 0L)
+  expect_false("age" %in% names(result))
 })
 
-test_that("schema applies defaults for missing optional fields with return_objects = FALSE", {
+test_that("schema omits missing optional fields even with defaults (return_objects = FALSE)", {
   schema <- s_map(
     name = s_string(),
     age = s_integer(.optional = TRUE, .default = 0L)
@@ -259,11 +259,11 @@ test_that("schema applies defaults for missing optional fields with return_objec
     return_objects = FALSE
   )
   expect_type(result, "character")
-  expect_true(grepl('"age"', result))
+  expect_false(grepl('"age"', result))
   expect_true(grepl('"name"', result))
 })
 
-test_that("schema returns NULL for optional fields without defaults", {
+test_that("schema omits optional fields without defaults when missing", {
   schema <- s_map(
     name = s_string(),
     age = s_integer(.optional = TRUE)
@@ -276,32 +276,59 @@ test_that("schema returns NULL for optional fields without defaults", {
   )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
-  expect_null(result$age)
+  expect_false("age" %in% names(result))
 })
 
-test_that("schema errors on missing required fields", {
+test_that("schema adds null for missing required fields without defaults", {
   schema <- s_map(
     name = s_string(),
     age = s_integer()
   )
 
-  expect_error(
-    repair_json_str(
-      '{"name": "Alice"}',
-      schema = schema,
-      return_objects = TRUE
-    ),
-    "Required field 'age' is missing"
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_type(result, "list")
+  expect_equal(result$name, "Alice")
+  expect_null(result$age)
+
+  result2 <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_type(result2, "character")
+  expect_true(grepl('"name"', result2))
+  expect_true(grepl('"age"', result2))
+  expect_true(grepl('null', result2))
+})
+
+test_that("schema adds default for missing required fields with defaults", {
+  schema <- s_map(
+    name = s_string(),
+    age = s_integer(.default = 25L)
   )
 
-  expect_error(
-    repair_json_str(
-      '{"name": "Alice"}',
-      schema = schema,
-      return_objects = FALSE
-    ),
-    "Required field 'age' is missing"
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
   )
+  expect_type(result, "list")
+  expect_equal(result$name, "Alice")
+  expect_equal(result$age, 25L)
+
+  result2 <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_type(result2, "character")
+  expect_true(grepl('"name"', result2))
+  expect_true(grepl('"age"', result2))
+  expect_true(grepl('25', result2))
 })
 
 test_that("schema coerces number to string", {
@@ -417,7 +444,7 @@ test_that("schema works with repair_json_file", {
 
   result <- repair_json_file(tmp_file, schema = schema, return_objects = TRUE)
   expect_equal(result$name, "Alice")
-  expect_equal(result$age, 25L)
+  expect_false("age" %in% names(result))
 
   unlink(tmp_file)
 })
@@ -432,5 +459,5 @@ test_that("schema works with repair_json_raw", {
 
   result <- repair_json_raw(raw_data, schema = schema, return_objects = TRUE)
   expect_equal(result$name, "Bob")
-  expect_equal(result$active, TRUE)
+  expect_false("active" %in% names(result))
 })

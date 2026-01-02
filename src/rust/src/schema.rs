@@ -512,19 +512,19 @@ impl Schema {
                     values.push(converted);
                 }
                 None => {
-                    // Field is missing - check .optional parameter
+                    // Field is missing from input JSON
                     if field_schema.is_optional() {
-                        // Optional field - use default if available, otherwise NULL
-                        let default_robj = field_schema.get_default();
+                        // Optional field and not in input - omit it entirely from output
+                        // (don't add to names/values)
+                    } else {
+                        // Required field - add default value (or NULL if no default)
                         names.push(field_name.as_str());
+                        let default_robj = field_schema.get_default();
                         if let Some(default) = default_robj {
                             values.push(default);
                         } else {
                             values.push(r!(NULL));
                         }
-                    } else {
-                        // Not optional - field is required, error regardless of default
-                        return Err(format!("Required field '{}' is missing", field_name));
                     }
                 }
             }
@@ -574,17 +574,17 @@ impl Schema {
                             let processed = field_schema.apply_defaults(v)?;
                             new_obj.insert(field_name.clone(), processed);
                         } else {
-                            // Field is missing
+                            // Field is missing from input JSON
                             if field_schema.is_optional() {
-                                // Add default or null
+                                // Optional field and not in input - omit it entirely from output
+                                // (don't add to new_obj)
+                            } else {
+                                // Required field - add default value (or null if no default)
                                 let default_value = match field_schema.get_default_json() {
                                     Some(v) => v,
                                     None => Value::Null,
                                 };
                                 new_obj.insert(field_name.clone(), default_value);
-                            } else {
-                                // Required field missing
-                                return Err(format!("Required field '{}' is missing", field_name));
                             }
                         }
                     }
