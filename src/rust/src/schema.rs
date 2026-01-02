@@ -1,6 +1,6 @@
 use extendr_api::prelude::*;
 use serde_json::Value;
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 // Use std::result::Result explicitly to avoid conflict with extendr's Result
 type StdResult<T, E> = std::result::Result<T, E>;
@@ -159,7 +159,7 @@ pub enum Schema {
         optional: bool,
     },
     Map {
-        fields: HashMap<String, Schema>,
+        fields: IndexMap<String, Schema>,
         optional: bool,
     },
     Any {
@@ -246,7 +246,7 @@ impl Schema {
                     .1;
                 let fields_list = fields_robj.as_list().ok_or("Map 'fields' must be a list")?;
 
-                let mut fields = HashMap::new();
+                let mut fields = IndexMap::new();
                 for (name, field_schema) in fields_list.iter() {
                     let schema = Schema::from_robj(&field_schema)?;
                     fields.insert(name.to_string(), schema);
@@ -497,7 +497,7 @@ impl Schema {
     fn apply_to_object(
         &self,
         obj: &serde_json::Map<String, Value>,
-        fields: &HashMap<String, Schema>,
+        fields: &IndexMap<String, Schema>,
     ) -> StdResult<Robj, String> {
         let mut names = Vec::with_capacity(fields.len());
         let mut values = Vec::with_capacity(fields.len());

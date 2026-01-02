@@ -500,8 +500,8 @@ test_that("schema handles arrays", {
   expect_equal(
     result,
     list(
-      scores = c(90, 85, 95),
-      name = "Alice"
+      name = "Alice",
+      scores = c(90, 85, 95)
     )
   )
 })
