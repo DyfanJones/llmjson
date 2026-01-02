@@ -577,3 +577,240 @@ test_that("schema works with repair_json_raw", {
   expect_equal(result$name, "Bob")
   expect_false("active" %in% names(result))
 })
+
+# Tests for Date schema
+test_that("s_date creates valid schema", {
+  schema <- s_date()
+  expect_s3_class(schema, "llmjson_schema")
+  expect_equal(schema$type, "date")
+})
+
+test_that("s_date parses ISO8601 date strings", {
+  schema <- s_map(event_date = s_date())
+
+  result <- repair_json_str(
+    '{"event_date": "2024-01-15"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$event_date, as.Date("2024-01-15"))
+})
+
+test_that("s_date parses custom format date strings", {
+  schema <- s_map(event_date = s_date(.format = "%m/%d/%Y"))
+
+  result <- repair_json_str(
+    '{"event_date": "01/15/2024"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$event_date, as.Date("2024-01-15"))
+})
+
+test_that("s_date parses named format date strings", {
+  schema <- s_map(event_date = s_date(.format = "us_date"))
+
+  result <- repair_json_str(
+    '{"event_date": "01/15/2024"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$event_date, as.Date("2024-01-15"))
+})
+
+test_that("s_date handles numeric dates", {
+  schema <- s_map(event_date = s_date())
+
+  result <- repair_json_str(
+    '{"event_date": 19737}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$event_date, as.Date(19737))
+})
+
+test_that("s_date handles optional dates", {
+  schema <- s_map(
+    name = s_string(),
+    birthday = s_date(.optional = TRUE)
+  )
+
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$name, "Alice")
+  expect_false("birthday" %in% names(result))
+})
+
+test_that("s_date handles default dates", {
+  default_date <- as.Date("2024-01-01")
+  schema <- s_map(
+    name = s_string(),
+    start_date = s_date(.default = default_date)
+  )
+
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$name, "Alice")
+  expect_equal(result$start_date, default_date)
+})
+
+# Tests for POSIXct schema
+test_that("s_posixct creates valid schema", {
+  schema <- s_posixct()
+  expect_s3_class(schema, "llmjson_schema")
+  expect_equal(schema$type, "posixct")
+})
+
+test_that("s_posixct parses ISO8601 datetime strings", {
+  schema <- s_map(timestamp = s_posixct())
+
+  result <- repair_json_str(
+    '{"timestamp": "2024-01-15T10:30:45"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_s3_class(result$timestamp, "POSIXct")
+  expect_equal(
+    result$timestamp,
+    as.POSIXct("2024-01-15 10:30:45", tz = "UTC")
+  )
+})
+
+test_that("s_posixct parses ISO8601Z datetime strings", {
+  schema <- s_map(timestamp = s_posixct(.format = "iso8601z"))
+
+  result <- repair_json_str(
+    '{"timestamp": "2024-01-15T10:30:45Z"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(
+    result$timestamp,
+    as.POSIXct("2024-01-15 10:30:45", tz = "UTC")
+  )
+})
+
+test_that("s_posixct parses Unix timestamps from strings", {
+  schema <- s_map(timestamp = s_posixct(.format = "unix"))
+
+  result <- repair_json_str(
+    '{"timestamp": "1705318245"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(
+    result$timestamp,
+    as.POSIXct("2024-01-15 11:30:45", tz = "UTC")
+  )
+})
+
+test_that("s_posixct parses Unix timestamps from numbers", {
+  schema <- s_map(timestamp = s_posixct())
+
+  result <- repair_json_str(
+    '{"timestamp": 1705318245}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(
+    result$timestamp,
+    as.POSIXct("2024-01-15 11:30:45", tz = "UTC")
+  )
+})
+
+test_that("s_posixct parses millisecond timestamps", {
+  schema <- s_map(timestamp = s_posixct(.format = "unix_ms"))
+
+  result <- repair_json_str(
+    '{"timestamp": "1705318245000"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(
+    result$timestamp,
+    as.POSIXct("2024-01-15 11:30:45", tz = "UTC")
+  )
+})
+
+test_that("s_posixct handles custom format", {
+  schema <- s_map(timestamp = s_posixct(.format = "%m/%d/%Y %H:%M:%S"))
+
+  result <- repair_json_str(
+    '{"timestamp": "01/15/2024 10:30:45"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(
+    result$timestamp,
+    as.POSIXct("2024-01-15 10:30:45", tz = "UTC")
+  )
+})
+
+test_that("s_posixct handles timezone", {
+  schema <- s_map(timestamp = s_posixct(.tz = "America/New_York"))
+
+  result <- repair_json_str(
+    '{"timestamp": "2024-01-15T10:30:45"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(
+    result$timestamp,
+    as.POSIXct("2024-01-15 10:30:45", tz = "America/New_York")
+  )
+})
+
+test_that("s_posixct handles optional timestamps", {
+  schema <- s_map(
+    name = s_string(),
+    created_at = s_posixct(.optional = TRUE)
+  )
+
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$name, "Alice")
+  expect_false("created_at" %in% names(result))
+})
+
+test_that("s_posixct handles default timestamps", {
+  default_time <- as.POSIXct("2024-01-01 00:00:00", tz = "UTC")
+  schema <- s_map(
+    name = s_string(),
+    created_at = s_posixct(.default = default_time)
+  )
+
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$name, "Alice")
+  expect_s3_class(result$created_at, "POSIXct")
+  expect_equal(as.numeric(result$created_at), as.numeric(default_time))
+})
+
+test_that("s_date and s_posixct work together in schema", {
+  schema <- s_map(
+    name = s_string(),
+    birthday = s_date(),
+    last_login = s_posixct()
+  )
+
+  result <- repair_json_str(
+    '{"name": "Alice", "birthday": "1990-05-15", "last_login": "2024-01-15T10:30:45"}',
+    schema = schema,
+    return_objects = TRUE
+  )
+  expect_equal(result$name, "Alice")
+  expect_s3_class(result$birthday, "Date")
+  expect_s3_class(result$last_login, "POSIXct")
+})

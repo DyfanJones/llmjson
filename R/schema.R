@@ -240,6 +240,111 @@ s_any <- function(.optional = FALSE) {
   )
 }
 
+#' Create a schema for a Date value
+#'
+#' This schema parses date strings from JSON into R Date objects. It supports
+#' both named format presets and custom strptime format strings.
+#'
+#' @param .optional Logical; if TRUE, this value can be null and a missing field
+#'   will not cause an error
+#' @param .default Default value to use when field is missing and .optional = TRUE.
+#'   Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))
+#' @param .format Character vector specifying date format(s). Can be:
+#'   \itemize{
+#'     \item A named format: "iso8601" (\%Y-\%m-\%d), "us_date" (\%m/\%d/\%Y),
+#'           "eu_date" (\%d/\%m/\%Y)
+#'     \item A custom strptime format string (e.g., "\%d-\%m-\%Y")
+#'     \item A vector of formats to try in order
+#'   }
+#'   Defaults to "iso8601" (\%Y-\%m-\%d)
+#' @return A schema definition object
+#' @export
+#' @examples
+#' s_date()
+#' s_date(.optional = TRUE)
+#' s_date(.format = "us_date")
+#' s_date(.format = "%d-%m-%Y")
+#' s_date(.format = c("iso8601", "us_date"))
+s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
+  schema <- list(
+    type = "date",
+    optional = .optional
+  )
+
+  if (!is.null(.default)) {
+    if (!inherits(.default, "Date") || length(.default) != 1) {
+      stop(".default for s_date must be a single Date object")
+    }
+    # Convert to string in ISO format for storage
+    schema$default <- as.character(.default)
+  }
+
+  if (!is.character(.format)) {
+    stop(".format for s_date must be a character vector")
+  }
+  schema$format <- .format
+
+  structure(schema, class = "llmjson_schema")
+}
+
+#' Create a schema for a POSIXct datetime value
+#'
+#' This schema parses datetime strings from JSON into R POSIXct objects. It supports
+#' both named format presets and custom strptime format strings, as well as numeric
+#' Unix timestamps.
+#'
+#' @param .optional Logical; if TRUE, this value can be null and a missing field
+#'   will not cause an error
+#' @param .default Default value to use when field is missing and .optional = TRUE.
+#'   Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:00"))
+#' @param .format Character vector specifying datetime format(s). Can be:
+#'   \itemize{
+#'     \item A named format: "iso8601" (\%Y-\%m-\%dT\%H:\%M:\%S),
+#'           "iso8601z" (\%Y-\%m-\%dT\%H:\%M:\%SZ), "rfc822" (\%a, \%d \%b \%Y \%H:\%M:\%S),
+#'           "us_datetime" (\%m/\%d/\%Y \%H:\%M:\%S), "eu_datetime" (\%d/\%m/\%Y \%H:\%M:\%S)
+#'     \item "unix" or "epoch" to parse numeric Unix timestamps (seconds since 1970-01-01)
+#'     \item "unix_ms" to parse millisecond timestamps
+#'     \item A custom strptime format string
+#'     \item A vector of formats to try in order
+#'   }
+#'   Defaults to "iso8601" (\%Y-\%m-\%dT\%H:\%M:\%S)
+#' @param .tz Timezone to use for parsing. Defaults to "UTC"
+#' @return A schema definition object
+#' @export
+#' @examples
+#' s_posixct()
+#' s_posixct(.optional = TRUE)
+#' s_posixct(.format = "iso8601z")
+#' s_posixct(.format = "unix")
+#' s_posixct(.format = c("iso8601", "iso8601z"))
+#' s_posixct(.tz = "America/New_York")
+s_posixct <- function(.optional = FALSE, .default = NULL, .format = "iso8601", .tz = "UTC") {
+  schema <- list(
+    type = "posixct",
+    optional = .optional
+  )
+
+  if (!is.null(.default)) {
+    if (!inherits(.default, "POSIXct") || length(.default) != 1) {
+      stop(".default for s_posixct must be a single POSIXct object")
+    }
+    # Convert to numeric Unix timestamp for storage
+    schema$default <- as.numeric(.default)
+  }
+
+  if (!is.character(.format)) {
+    stop(".format for s_posixct must be a character vector")
+  }
+  schema$format <- .format
+
+  if (!is.character(.tz) || length(.tz) != 1) {
+    stop(".tz for s_posixct must be a single character value")
+  }
+  schema$tz <- .tz
+
+  structure(schema, class = "llmjson_schema")
+}
+
 #' @export
 print.llmjson_schema <- function(x, ...) {
   # Build schema and use Rust implementation for better performance
