@@ -30,6 +30,11 @@ impl BuiltSchema {
         print_schema_helper(&self.schema, 0);
         rprintln!("");
     }
+
+    /// Format schema as string (for benchmarking)
+    pub fn format(&self) -> String {
+        format_schema_helper(&self.schema, 0)
+    }
 }
 
 impl BuiltSchema {
@@ -41,21 +46,27 @@ impl BuiltSchema {
 
 /// Helper function to recursively print schema structure in JSON-like format
 fn print_schema_helper(schema: &Schema, indent: usize) {
+    let result = format_schema_helper(schema, indent);
+    rprint!("{}", result);
+}
+
+/// Format schema as string (used for both printing and benchmarking)
+fn format_schema_helper(schema: &Schema, indent: usize) -> String {
     let padding = "  ".repeat(indent);
 
     match schema {
         Schema::Map { fields, optional: _ } => {
-            rprint!("{}{{\n", padding);
+            let mut result = String::new();
 
             let field_names: Vec<&String> = fields.keys().collect();
             for (i, field_name) in field_names.iter().enumerate() {
                 let field_schema = &fields[*field_name];
-                rprint!("{}  \"{}\": ", padding, field_name);
+                result.push_str(&format!("{}  \"{}\": ", padding, field_name));
 
                 match field_schema {
                     Schema::Map { .. } | Schema::Array { .. } => {
-                        rprintln!("");
-                        print_schema_helper(field_schema, indent + 1);
+                        result.push('\n');
+                        result.push_str(&format_schema_helper(field_schema, indent + 1));
                     }
                     _ => {
                         // Inline simple types
@@ -66,22 +77,25 @@ fn print_schema_helper(schema: &Schema, indent: usize) {
                         if let Some(default_str) = get_default_string(field_schema) {
                             type_str.push_str(&format!(" [default: {}]", default_str));
                         }
-                        rprint!("{}", type_str);
+                        result.push_str(&type_str);
                     }
                 }
 
                 if i < field_names.len() - 1 {
-                    rprint!(",");
+                    result.push(',');
                 }
-                rprintln!("");
+                result.push('\n');
             }
-            rprint!("{}}}", padding);
+
+            format!("{}{{\n{}{}}}", padding, result, padding)
         }
         Schema::Array { items, optional: _ } => {
-            rprint!("{}[\n", padding);
-            print_schema_helper(items, indent + 1);
-            rprintln!("");
-            rprint!("{}]", padding);
+            format!(
+                "{}[\n{}\n{}]",
+                padding,
+                format_schema_helper(items, indent + 1),
+                padding
+            )
         }
         _ => {
             // Simple types at top level (shouldn't happen in normal usage)
@@ -92,7 +106,7 @@ fn print_schema_helper(schema: &Schema, indent: usize) {
             if let Some(default_str) = get_default_string(schema) {
                 type_str.push_str(&format!(" [default: {}]", default_str));
             }
-            rprint!("{}", type_str);
+            type_str
         }
     }
 }

@@ -66,6 +66,8 @@ BuiltSchema$new <- function(robj) .Call(wrap__BuiltSchema__new, robj)
 
 BuiltSchema$print <- function() invisible(.Call(wrap__BuiltSchema__print, self))
 
+BuiltSchema$format <- function() .Call(wrap__BuiltSchema__format, self)
+
 #' @export
 `$.BuiltSchema` <- function (self, name) { func <- BuiltSchema[[name]]; environment(func) <- environment(); func }
 
