@@ -14,7 +14,7 @@ Depends:
     R (>= 4.2)
 Suggests:
     testthat (>= 3.0.0)
-Config/rextendr/version: 0.3.1.9001
+Config/rextendr/version: 0.4.2.9000
 SystemRequirements: Cargo (Rust's package manager), rustc
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

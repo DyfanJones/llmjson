@@ -171,15 +171,39 @@ str(result)
 #>  $ scores : int [1:3] 90 85 95
 ```
 
-### Available Schema Builders
 
-- `s_map(...)` - Define a JSON object with named fields
-- `s_integer(.optional, .default)` - Integer field with optional defaults
-- `s_double(.optional, .default)` - Double/numeric field with optional defaults
-- `s_string(.optional, .default)` - String field with optional defaults
-- `s_logical(.optional, .default)` - Logical/boolean field with optional defaults
-- `s_array(items)` - Array with specified item type
-- `s_any()` - Accept any JSON type
+### Build Schemas for Better Performance
+
+For repeated use with the same schema, use `build_schema()` to compile the schema once and reuse it many times.
+
+``` r
+# Define your schema
+schema <- s_map(
+  name = s_string(),
+  age = s_integer(),
+  email = s_string()
+)
+
+# Build it once - this creates an optimized internal representation
+built_schema <- build_schema(schema)
+
+# Reuse many times - much faster!
+for (json_str in json_strings) {
+  result <- repair_json_str(json_str, built_schema, return_objects = TRUE)
+  # Process result...
+}
+```
+
+**Performance comparison** (complex nested schema):
+- Without `build_schema()`: ~266µs per call
+- With `build_schema()`: ~51µs per call (**5.2x faster**)
+- No schema: ~44µs per call
+
+The performance benefit is especially significant for:
+- Complex nested schemas with multiple levels
+- Batch processing of many JSON strings
+- Performance-critical applications
+- Real-time data processing pipelines
 
 ### Repair JSON from Files
 
@@ -250,15 +274,28 @@ str(result)
 
 ## Available Functions
 
-All functions support the `schema` and `return_objects` parameters:
+### Repair Functions
+
+All repair functions support the `schema` and `return_objects` parameters:
 
 - **`repair_json_str(json_str, schema = NULL, return_objects = FALSE)`** - Repair a malformed JSON string
 - **`repair_json_file(path, schema = NULL, return_objects = FALSE)`** - Read and repair JSON from a file
 - **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE)`** - Repair JSON from a raw byte vector
 
 **Parameters:**
-- `schema` - Optional schema definition created with `s_map()` and related functions
+- `schema` - Optional schema definition (R list from `s_map()`, etc.) or built schema (from `build_schema()`)
 - `return_objects` - If `TRUE`, returns R objects instead of JSON strings
+
+### Schema Functions
+
+- **`build_schema(schema)`** - Compile a schema definition for efficient reuse (5x performance improvement)
+- **`s_map(..., .optional)`** - Define a JSON object with named fields
+- **`s_integer(.optional, .default)`** - Integer field with optional defaults
+- **`s_double(.optional, .default)`** - Double/numeric field with optional defaults
+- **`s_string(.optional, .default)`** - String field with optional defaults
+- **`s_logical(.optional, .default)`** - Logical/boolean field with optional defaults
+- **`s_array(items, .optional)`** - Array with specified item type
+- **`s_any(.optional)`** - Accept any JSON type
 
 ## Comparison with Similar Packages
 

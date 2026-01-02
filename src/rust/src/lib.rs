@@ -5,18 +5,33 @@ use std::io::Cursor;
 mod json_to_r;
 mod schema;
 
+/// Helper function to get a Schema from an Robj (either external pointer or list)
+fn get_schema(schema_robj: &Robj) -> Option<schema::Schema> {
+    if schema_robj.is_null() {
+        return None;
+    }
+
+    // Check if it's an external pointer to a BuiltSchema
+    if let Some(built_schema) = <&schema::BuiltSchema>::try_from(schema_robj).ok() {
+        return Some(built_schema.get_schema().clone());
+    }
+
+    // Otherwise, try to parse it as an R list schema (backwards compatibility)
+    match schema::Schema::from_robj(schema_robj) {
+        Ok(s) => Some(s),
+        Err(e) => {
+            throw_r_error(&format!("Invalid schema: {}", e));
+        }
+    }
+}
+
 /// Helper function to apply schema and return R objects
 fn apply_schema_to_robj(value: &Value, schema: &Robj) -> Robj {
-    if !schema.is_null() {
-        match schema::Schema::from_robj(schema) {
-            Ok(s) => match s.apply(value) {
-                Ok(robj) => robj,
-                Err(e) => {
-                    throw_r_error(&format!("Schema validation failed: {}", e));
-                }
-            },
+    if let Some(s) = get_schema(schema) {
+        match s.apply(value) {
+            Ok(robj) => robj,
             Err(e) => {
-                throw_r_error(&format!("Invalid schema: {}", e));
+                throw_r_error(&format!("Schema validation failed: {}", e));
             }
         }
     } else {
@@ -28,16 +43,11 @@ fn apply_schema_to_robj(value: &Value, schema: &Robj) -> Robj {
 /// Helper function to apply schema defaults and return JSON string
 fn apply_schema_to_json_string(value: &Value, schema: &Robj) -> Robj {
     // Apply schema defaults if provided
-    let final_value = if !schema.is_null() {
-        match schema::Schema::from_robj(schema) {
-            Ok(s) => match s.apply_defaults(value) {
-                Ok(v) => v,
-                Err(e) => {
-                    throw_r_error(&format!("Schema validation failed: {}", e));
-                }
-            },
+    let final_value = if let Some(s) = get_schema(schema) {
+        match s.apply_defaults(value) {
+            Ok(v) => v,
             Err(e) => {
-                throw_r_error(&format!("Invalid schema: {}", e));
+                throw_r_error(&format!("Schema validation failed: {}", e));
             }
         }
     } else {
@@ -183,4 +193,5 @@ extendr_module! {
     fn repair_json_str;
     fn repair_json_file;
     fn repair_json_raw;
+    use schema;
 }

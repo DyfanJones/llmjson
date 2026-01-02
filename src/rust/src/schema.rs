@@ -5,8 +5,36 @@ use std::collections::HashMap;
 // Use std::result::Result explicitly to avoid conflict with extendr's Result
 type StdResult<T, E> = std::result::Result<T, E>;
 
+/// Wrapper struct for Schema that can be passed to/from R as an external pointer
+/// This allows us to build a schema once and reuse it many times
+#[derive(Debug, Clone, PartialEq)]
+#[extendr]
+pub struct BuiltSchema {
+    schema: Schema,
+}
+
+#[extendr]
+impl BuiltSchema {
+    /// Create a new built schema from an R schema definition
+    pub fn new(robj: Robj) -> Self {
+        match Schema::from_robj(&robj) {
+            Ok(schema) => BuiltSchema { schema },
+            Err(e) => {
+                throw_r_error(&format!("Invalid schema: {}", e));
+            }
+        }
+    }
+}
+
+impl BuiltSchema {
+    /// Get a reference to the internal Schema
+    pub fn get_schema(&self) -> &Schema {
+        &self.schema
+    }
+}
+
 /// Schema definition for JSON validation and conversion
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Schema {
     Integer { optional: bool, default: Option<i32> },
     Double { optional: bool, default: Option<f64> },
@@ -478,4 +506,10 @@ impl Schema {
             _ => None,
         }
     }
+}
+
+// Generate metadata for the BuiltSchema type
+extendr_module! {
+    mod schema;
+    impl BuiltSchema;
 }

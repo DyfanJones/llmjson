@@ -8,6 +8,38 @@
 #' @rdname schema_builders
 NULL
 
+#' Build a compiled schema for efficient reuse
+#'
+#' This function compiles a schema definition into an efficient internal
+#' representation that can be reused across multiple JSON repair operations.
+#' This dramatically improves performance when repairing many JSON strings
+#' with the same schema, as the schema only needs to be parsed once.
+#'
+#' @param schema A schema definition created with s_map(), s_integer(), etc.
+#' @return A built schema object (external pointer) that can be passed to
+#'   repair_json_str(), repair_json_file(), or repair_json_raw()
+#' @export
+#' @examples
+#' # Create a schema
+#' schema <- s_map(
+#'   name = s_string(),
+#'   age = s_integer(),
+#'   email = s_string()
+#' )
+#'
+#' # Build it once
+#' built_schema <- build_schema(schema)
+#'
+#' # Reuse many times - much faster than rebuilding each time!
+#' repair_json_str('{"name": "Alice", "age": 30}', built_schema)
+#' repair_json_str('{"name": "Bob", "age": 25}', built_schema)
+build_schema <- function(schema) {
+  if (!inherits(schema, "llmjson_schema")) {
+    stop("schema must be a schema definition created with s_* functions")
+  }
+  BuiltSchema$new(schema)
+}
+
 #' Create a schema for a JSON object/map
 #'
 #' @param ... Named arguments defining the schema for each field.

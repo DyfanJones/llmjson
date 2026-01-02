@@ -17,82 +17,58 @@ NULL
 #' unquoted keys, and other common JSON syntax errors.
 #'
 #' @param json_str A character string containing malformed JSON
-#' @param schema Optional schema definition created with s_map(), s_integer(), etc.
-#'   If provided, validates and converts JSON according to the schema
-#' @param return_objects Logical indicating whether to return R objects (TRUE)
-#'   or JSON string (FALSE, default)
-#' @return A character string containing the repaired JSON, or an R object
-#'   if return_objects is TRUE
+#' @param schema Optional schema definition for validation and type conversion
+#' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+#' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
 #' repair_json_str('{"key": "value",}')  # Removes trailing comma
 #' repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
-#'
-#' # Return R objects instead of JSON string
-#' repair_json_str('{"name": "Alice", "age": 30}', return_objects = TRUE)
-#'
-#' # Use schema for validation and type conversion
-#' schema <- s_map(
-#'   name = s_string(),
-#'   age = s_integer()
-#' )
-#' repair_json_str('{"name": "Alice", "age": 30}', schema = schema, return_objects = TRUE)
-repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) {
-  .Call(wrap__repair_json_str, json_str, schema, return_objects)
-}
+#' repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
+repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_str, json_str, schema, return_objects)
 
 #' Repair malformed JSON from a file
 #'
 #' This function reads a file containing malformed JSON and repairs it.
 #'
 #' @param path A character string with the file path
-#' @param schema Optional schema definition created with s_map(), s_integer(), etc.
-#' @param return_objects Logical indicating whether to return R objects (TRUE)
-#'   or JSON string (FALSE, default)
-#' @return A character string containing the repaired JSON, or an R object
-#'   if return_objects is TRUE
+#' @param schema Optional schema definition for validation and type conversion
+#' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+#' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
 #' \dontrun{
 #' repair_json_file("malformed.json")
-#'
-#' # Return R objects instead of JSON string
 #' repair_json_file("malformed.json", return_objects = TRUE)
-#'
-#' # Use schema for validation
-#' schema <- s_map(name = s_string(), age = s_integer())
-#' repair_json_file("malformed.json", schema = schema, return_objects = TRUE)
 #' }
-repair_json_file <- function(path, schema = NULL, return_objects = FALSE) {
-  .Call(wrap__repair_json_file, path, schema, return_objects)
-}
+repair_json_file <- function(path, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_file, path, schema, return_objects)
 
 #' Repair malformed JSON from raw bytes
 #'
 #' This function repairs malformed JSON from a raw vector of bytes.
 #'
 #' @param raw_bytes A raw vector containing malformed JSON bytes
-#' @param schema Optional schema definition created with s_map(), s_integer(), etc.
-#' @param return_objects Logical indicating whether to return R objects (TRUE)
-#'   or JSON string (FALSE, default)
-#' @return A character string containing the repaired JSON, or an R object
-#'   if return_objects is TRUE
+#' @param schema Optional schema definition for validation and type conversion
+#' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+#' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
 #' \dontrun{
 #' raw_data <- charToRaw('{"key": "value",}')
 #' repair_json_raw(raw_data)
-#'
-#' # Return R objects instead of JSON string
 #' repair_json_raw(raw_data, return_objects = TRUE)
-#'
-#' # Use schema for validation
-#' schema <- s_map(name = s_string(), age = s_integer())
-#' repair_json_raw(raw_data, schema = schema, return_objects = TRUE)
 #' }
-repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE) {
-  .Call(wrap__repair_json_raw, raw_bytes, schema, return_objects)
-}
+repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_raw, raw_bytes, schema, return_objects)
+
+BuiltSchema <- new.env(parent = emptyenv())
+
+BuiltSchema$new <- function(robj) .Call(wrap__BuiltSchema__new, robj)
+
+#' @export
+`$.BuiltSchema` <- function (self, name) { func <- BuiltSchema[[name]]; environment(func) <- environment(); func }
+
+#' @export
+`[[.BuiltSchema` <- `$.BuiltSchema`
 
 
 # nolint end

@@ -7,10 +7,11 @@
 s_string(.optional = FALSE, .default = NULL)
 }
 \arguments{
-\item{.optional}{Logical; if TRUE, this value can be null}
+\item{.optional}{Logical; if TRUE, this value can be null and a missing field
+will not cause an error}
 
-\item{.default}{Default value to use if field is missing. If provided,
-the field is not required}
+\item{.default}{Default value to use when field is missing and .optional = TRUE.
+Must be a single character value (e.g., "", "unknown")}
 }
 \value{
 A schema definition object
@@ -21,5 +22,5 @@ Create a schema for a string value
 \examples{
 s_string()
 s_string(.optional = TRUE)
-s_string(.default = "")
+s_string(.optional = TRUE, .default = "")
 }

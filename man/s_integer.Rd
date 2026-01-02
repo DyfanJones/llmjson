@@ -7,10 +7,11 @@
 s_integer(.optional = FALSE, .default = NULL)
 }
 \arguments{
-\item{.optional}{Logical; if TRUE, this value can be null}
+\item{.optional}{Logical; if TRUE, this value can be null and a missing field
+will not cause an error}
 
-\item{.default}{Default value to use if field is missing. If provided,
-the field is not required}
+\item{.default}{Default value to use when field is missing and .optional = TRUE.
+Must be a single integer value (e.g., 0L, 1L)}
 }
 \value{
 A schema definition object
@@ -21,5 +22,5 @@ Create a schema for an integer value
 \examples{
 s_integer()
 s_integer(.optional = TRUE)
-s_integer(.default = 0L)
+s_integer(.optional = TRUE, .default = 0L)
 }
