@@ -603,10 +603,137 @@ impl Schema {
                     Err("Expected array".to_string())
                 }
             }
-            _ => {
-                // For primitive types, just return the value as-is
+            Schema::Integer { .. } => {
+                // Coerce to integer
+                self.coerce_to_integer(value)
+            }
+            Schema::Double { .. } => {
+                // Coerce to double
+                self.coerce_to_double(value)
+            }
+            Schema::String { .. } => {
+                // Coerce to string
+                self.coerce_to_string(value)
+            }
+            Schema::Logical { .. } => {
+                // Coerce to boolean
+                self.coerce_to_boolean(value)
+            }
+            Schema::Any { .. } => {
+                // For 'any', return as-is
                 Ok(value.clone())
             }
+        }
+    }
+
+    /// Coerce a JSON value to integer
+    fn coerce_to_integer(&self, value: &Value) -> StdResult<Value, String> {
+        // Try direct integer conversion
+        if let Some(n) = value.as_i64() {
+            if n >= i32::MIN as i64 && n <= i32::MAX as i64 {
+                return Ok(Value::Number((n as i32).into()));
+            } else {
+                return Err(format!("Integer value {} out of range for i32", n));
+            }
+        } else if let Some(n) = value.as_u64() {
+            if n <= i32::MAX as u64 {
+                return Ok(Value::Number((n as i32).into()));
+            } else {
+                return Err(format!("Integer value {} out of range for i32", n));
+            }
+        }
+
+        // Try coercion from other types
+        match value {
+            Value::String(s) => {
+                match s.parse::<i32>() {
+                    Ok(i) => Ok(Value::Number(i.into())),
+                    Err(_) => Err(format!("Cannot parse '{}' as integer", s)),
+                }
+            }
+            Value::Bool(b) => Ok(Value::Number(if *b { 1 } else { 0 }.into())),
+            _ => Err(format!("Cannot convert {:?} to integer", value)),
+        }
+    }
+
+    /// Coerce a JSON value to double
+    fn coerce_to_double(&self, value: &Value) -> StdResult<Value, String> {
+        // Try direct numeric conversion
+        if let Some(f) = value.as_f64() {
+            return serde_json::Number::from_f64(f)
+                .map(Value::Number)
+                .ok_or_else(|| "Invalid floating point number".to_string());
+        } else if let Some(i) = value.as_i64() {
+            return serde_json::Number::from_f64(i as f64)
+                .map(Value::Number)
+                .ok_or_else(|| "Invalid floating point number".to_string());
+        } else if let Some(u) = value.as_u64() {
+            return serde_json::Number::from_f64(u as f64)
+                .map(Value::Number)
+                .ok_or_else(|| "Invalid floating point number".to_string());
+        }
+
+        // Try coercion from other types
+        match value {
+            Value::String(s) => {
+                match s.parse::<f64>() {
+                    Ok(d) => serde_json::Number::from_f64(d)
+                        .map(Value::Number)
+                        .ok_or_else(|| format!("Cannot parse '{}' as number", s)),
+                    Err(_) => Err(format!("Cannot parse '{}' as number", s)),
+                }
+            }
+            Value::Bool(b) => serde_json::Number::from_f64(if *b { 1.0 } else { 0.0 })
+                .map(Value::Number)
+                .ok_or_else(|| "Invalid floating point number".to_string()),
+            _ => Err(format!("Cannot convert {:?} to number", value)),
+        }
+    }
+
+    /// Coerce a JSON value to string
+    fn coerce_to_string(&self, value: &Value) -> StdResult<Value, String> {
+        if let Some(s) = value.as_str() {
+            Ok(Value::String(s.to_string()))
+        } else {
+            let string_value = match value {
+                Value::Number(n) => n.to_string(),
+                Value::Bool(b) => b.to_string(),
+                Value::Null => "".to_string(),
+                Value::Array(_) | Value::Object(_) => {
+                    serde_json::to_string(value).unwrap_or_default()
+                }
+                _ => return Err(format!("Cannot convert {:?} to string", value)),
+            };
+            Ok(Value::String(string_value))
+        }
+    }
+
+    /// Coerce a JSON value to boolean
+    fn coerce_to_boolean(&self, value: &Value) -> StdResult<Value, String> {
+        if let Some(b) = value.as_bool() {
+            return Ok(Value::Bool(b));
+        }
+
+        match value {
+            Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    Ok(Value::Bool(i != 0))
+                } else if let Some(f) = n.as_f64() {
+                    Ok(Value::Bool(f != 0.0))
+                } else {
+                    Ok(Value::Bool(true))
+                }
+            }
+            Value::String(s) => {
+                let s_lower = s.to_lowercase();
+                match s_lower.as_str() {
+                    "true" | "t" | "yes" | "y" | "1" => Ok(Value::Bool(true)),
+                    "false" | "f" | "no" | "n" | "0" | "" => Ok(Value::Bool(false)),
+                    _ => Err(format!("Cannot parse '{}' as boolean", s)),
+                }
+            }
+            Value::Null => Ok(Value::Bool(false)),
+            _ => Err(format!("Cannot convert {:?} to boolean", value)),
         }
     }
 

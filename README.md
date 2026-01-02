@@ -19,7 +19,7 @@
 - Auto-completes missing values with sensible defaults
 - Returns R objects directly with `return_objects = TRUE`
 - Schema validation and type conversion with intuitive schema builders
-- Default values for missing optional fields
+- Control field presence with `.optional` and use `.default` for required fields
 
 ## Installation
 
@@ -113,31 +113,56 @@ str(result)
 
 ### Optional Fields and Default Values
 
-Handle missing fields gracefully with optional parameters and defaults:
+Control how missing fields are handled with `.optional` and `.default` parameters:
+
+**Required fields** (`.optional = FALSE`, the default):
+- Missing fields are added with their `.default` value (or `null` if no default)
+- Always appear in the output
+
+**Optional fields** (`.optional = TRUE`):
+- Missing fields are omitted entirely from the output
+- Only appear if present in the input JSON
 
 ``` r
+# Example 1: Required field with default
 schema <- s_map(
   name = s_string(),
-  age = s_integer(.optional = TRUE, .default = 0L),
-  active = s_logical(.optional = TRUE, .default = TRUE)
+  age = s_integer(.default = 25L)  # required, will use default if missing
 )
 
-# Missing fields get default values
-result <- repair_json_str(
-  '{"name": "Bob"}',
-  schema = schema,
-  return_objects = TRUE
+result <- repair_json_str('{"name": "Alice"}', schema = schema, return_objects = TRUE)
+result
+#> $name
+#> [1] "Alice"
+#>
+#> $age
+#> [1] 25
+
+# Example 2: Optional field (omitted when missing)
+schema <- s_map(
+  name = s_string(),
+  nickname = s_string(.optional = TRUE)  # optional, omitted if not in input
 )
 
+result <- repair_json_str('{"name": "Bob"}', schema = schema, return_objects = TRUE)
 result
 #> $name
 #> [1] "Bob"
+# Note: nickname is not present since it was optional and missing from input
+
+# Example 3: Required field without default (gets null)
+schema <- s_map(
+  name = s_string(),
+  email = s_string()  # required, no default specified
+)
+
+result <- repair_json_str('{"name": "Charlie"}', schema = schema, return_objects = TRUE)
+result
+#> $name
+#> [1] "Charlie"
 #>
-#> $age
-#> [1] 0
-#>
-#> $active
-#> [1] TRUE
+#> $email
+#> NULL
 ```
 
 ### Nested Schemas and Arrays
@@ -214,7 +239,7 @@ repair_json_file("malformed.json")
 # With schema validation
 schema <- s_map(
   name = s_string(),
-  age = s_integer(.optional = TRUE, .default = 0L)
+  age = s_integer(.default = 25L)  # required field with default
 )
 result <- repair_json_file("data.json", schema = schema, return_objects = TRUE)
 ```

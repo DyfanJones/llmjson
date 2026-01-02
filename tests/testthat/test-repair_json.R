@@ -381,6 +381,111 @@ test_that("schema coerces boolean to integer", {
   expect_equal(result2$active, 0L)
 })
 
+test_that("schema coerces types with return_objects = FALSE (JSON output)", {
+  # Integer to String
+  schema <- s_map(var1 = s_string())
+  result <- repair_json_str(
+    '{var1: 2}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"var1\":\"2\"}")
+
+  # String to Integer
+  schema <- s_map(var1 = s_integer())
+  result <- repair_json_str(
+    '{var1: "42"}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"var1\":42}")
+
+  # Boolean to Integer
+  schema <- s_map(active = s_integer())
+  result <- repair_json_str(
+    '{active: true}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"active\":1}")
+
+  # Integer to Double
+  schema <- s_map(value = s_double())
+  result <- repair_json_str(
+    '{value: 10}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"value\":10.0}")
+
+  # String to Boolean
+  schema <- s_map(flag = s_logical())
+  result <- repair_json_str(
+    '{flag: "true"}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"flag\":true}")
+
+  # Number to String (multiple fields)
+  schema <- s_map(
+    name = s_string(),
+    age = s_string()
+  )
+  result <- repair_json_str(
+    '{"name": "Alice", "age": 30}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"age\":\"30\",\"name\":\"Alice\"}")
+})
+
+test_that("schema coerces types in nested structures with return_objects = FALSE", {
+  # Nested map with coercion
+  schema <- s_map(
+    name = s_string(),
+    details = s_map(
+      age = s_string(), # Coerce number to string
+      score = s_integer() # Coerce string to integer
+    )
+  )
+  result <- repair_json_str(
+    '{"name": "Alice", "details": {"age": 30, "score": "95"}}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(
+    result,
+    "{\"details\":{\"age\":\"30\",\"score\":95},\"name\":\"Alice\"}"
+  )
+
+  # Array with coercion
+  schema <- s_map(
+    values = s_array(s_string()) # Coerce numbers to strings
+  )
+  result <- repair_json_str(
+    '{"values": [1, 2, 3]}',
+    schema = schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"values\":[\"1\",\"2\",\"3\"]}")
+})
+
+test_that("schema coercion works with built schemas", {
+  # Test with build_schema for performance
+  built_schema <- build_schema(s_map(
+    var1 = s_string(),
+    var2 = s_integer()
+  ))
+
+  result <- repair_json_str(
+    '{var1: 123, var2: "456"}',
+    schema = built_schema,
+    return_objects = FALSE
+  )
+  expect_equal(result, "{\"var1\":\"123\",\"var2\":456}")
+})
+
 test_that("schema handles arrays", {
   schema <- s_map(
     name = s_string(),
@@ -392,9 +497,13 @@ test_that("schema handles arrays", {
     schema = schema,
     return_objects = TRUE
   )
-  expect_type(result, "list")
-  expect_equal(result$name, "Alice")
-  expect_equal(result$scores, c(90L, 85L, 95L))
+  expect_equal(
+    result,
+    list(
+      scores = c(90, 85, 95),
+      name = "Alice"
+    )
+  )
 })
 
 test_that("schema handles nested maps", {
@@ -411,10 +520,13 @@ test_that("schema handles nested maps", {
     schema = schema,
     return_objects = TRUE
   )
-  expect_type(result, "list")
-  expect_equal(result$name, "Alice")
-  expect_equal(result$address$city, "NYC")
-  expect_equal(result$address$zip, 10001L)
+  expect_equal(
+    result,
+    list(
+      name = "Alice",
+      address = list(city = "NYC", zip = 10001L)
+    )
+  )
 })
 
 test_that("schema with s_any accepts any type", {
@@ -428,9 +540,13 @@ test_that("schema with s_any accepts any type", {
     schema = schema,
     return_objects = TRUE
   )
-  expect_type(result, "list")
-  expect_equal(result$name, "Alice")
-  expect_type(result$metadata, "list")
+  expect_equal(
+    result,
+    list(
+      name = "Alice",
+      metadata = list(count = 5, custom = "value")
+    )
+  )
 })
 
 test_that("schema works with repair_json_file", {
