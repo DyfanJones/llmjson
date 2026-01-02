@@ -1,0 +1,481 @@
+use extendr_api::prelude::*;
+use serde_json::Value;
+use std::collections::HashMap;
+
+// Use std::result::Result explicitly to avoid conflict with extendr's Result
+type StdResult<T, E> = std::result::Result<T, E>;
+
+/// Schema definition for JSON validation and conversion
+#[derive(Debug, Clone)]
+pub enum Schema {
+    Integer { optional: bool, default: Option<i32> },
+    Double { optional: bool, default: Option<f64> },
+    String { optional: bool, default: Option<String> },
+    Logical { optional: bool, default: Option<bool> },
+    Array { items: Box<Schema>, optional: bool },
+    Map { fields: HashMap<String, Schema>, optional: bool },
+    Any { optional: bool },
+}
+
+impl Schema {
+    /// Parse a schema from an R object
+    pub fn from_robj(robj: &Robj) -> StdResult<Self, String> {
+        if robj.is_null() {
+            return Err("Schema cannot be NULL".to_string());
+        }
+
+        if !robj.is_list() {
+            return Err("Schema must be a list".to_string());
+        }
+
+        let list = robj.as_list().ok_or("Failed to convert to list")?;
+
+        // Get the 'type' field
+        let type_robj = list
+            .iter()
+            .find(|(name, _)| *name == "type")
+            .ok_or("Schema must have a 'type' field")?
+            .1;
+        let schema_type = type_robj
+            .as_str()
+            .ok_or("Schema 'type' must be a string")?;
+
+        // Get the 'optional' field
+        let optional = list
+            .iter()
+            .find(|(name, _)| *name == "optional")
+            .and_then(|(_, robj)| robj.as_bool())
+            .unwrap_or(false);
+
+        match schema_type {
+            "integer" => {
+                let default = list
+                    .iter()
+                    .find(|(name, _)| *name == "default")
+                    .and_then(|(_, robj)| robj.as_integer());
+                Ok(Schema::Integer { optional, default })
+            }
+            "double" => {
+                let default = list
+                    .iter()
+                    .find(|(name, _)| *name == "default")
+                    .and_then(|(_, robj)| robj.as_real());
+                Ok(Schema::Double { optional, default })
+            }
+            "string" => {
+                let default = list
+                    .iter()
+                    .find(|(name, _)| *name == "default")
+                    .and_then(|(_, robj)| robj.as_str())
+                    .map(|s| s.to_string());
+                Ok(Schema::String { optional, default })
+            }
+            "logical" => {
+                let default = list
+                    .iter()
+                    .find(|(name, _)| *name == "default")
+                    .and_then(|(_, robj)| robj.as_bool());
+                Ok(Schema::Logical { optional, default })
+            }
+            "any" => Ok(Schema::Any { optional }),
+            "array" => {
+                let items_robj = list
+                    .iter()
+                    .find(|(name, _)| *name == "items")
+                    .ok_or("Array schema must have 'items' field")?
+                    .1;
+                let items = Schema::from_robj(&items_robj)?;
+                Ok(Schema::Array {
+                    items: Box::new(items),
+                    optional,
+                })
+            }
+            "map" => {
+                let fields_robj = list
+                    .iter()
+                    .find(|(name, _)| *name == "fields")
+                    .ok_or("Map schema must have 'fields' field")?
+                    .1;
+                let fields_list = fields_robj
+                    .as_list()
+                    .ok_or("Map 'fields' must be a list")?;
+
+                let mut fields = HashMap::new();
+                for (name, field_schema) in fields_list.iter() {
+                    let schema = Schema::from_robj(&field_schema)?;
+                    fields.insert(name.to_string(), schema);
+                }
+
+                Ok(Schema::Map { fields, optional })
+            }
+            _ => Err(format!("Unknown schema type: {}", schema_type)),
+        }
+    }
+
+    /// Apply the schema to a JSON value, converting and validating
+    pub fn apply(&self, value: &Value) -> StdResult<Robj, String> {
+        // Handle null values
+        if value.is_null() {
+            return match self.is_optional() {
+                true => Ok(r!(NULL)),
+                false => Err("Value is null but schema requires non-null".to_string()),
+            };
+        }
+
+        match self {
+            Schema::Integer { .. } => {
+                // Try direct integer conversion
+                if let Some(n) = value.as_i64() {
+                    if n >= i32::MIN as i64 && n <= i32::MAX as i64 {
+                        return Ok(Robj::from(n as i32));
+                    } else {
+                        return Err(format!("Integer value {} out of range for i32", n));
+                    }
+                } else if let Some(n) = value.as_u64() {
+                    if n <= i32::MAX as u64 {
+                        return Ok(Robj::from(n as i32));
+                    } else {
+                        return Err(format!("Integer value {} out of range for i32", n));
+                    }
+                }
+
+                // Try coercion from other types
+                match value {
+                    Value::String(s) => {
+                        // Try to parse string as integer
+                        match s.parse::<i32>() {
+                            Ok(i) => Ok(Robj::from(i)),
+                            Err(_) => Err(format!("Cannot parse '{}' as integer", s)),
+                        }
+                    }
+                    Value::Bool(b) => Ok(Robj::from(if *b { 1i32 } else { 0i32 })),
+                    _ => Err(format!("Cannot convert {:?} to integer", value)),
+                }
+            }
+            Schema::Double { .. } => {
+                // Try direct numeric conversion
+                if let Some(f) = value.as_f64() {
+                    return Ok(Robj::from(f));
+                } else if let Some(i) = value.as_i64() {
+                    return Ok(Robj::from(i as f64));
+                } else if let Some(u) = value.as_u64() {
+                    return Ok(Robj::from(u as f64));
+                }
+
+                // Try coercion from other types
+                match value {
+                    Value::String(s) => {
+                        // Try to parse string as double
+                        match s.parse::<f64>() {
+                            Ok(d) => Ok(Robj::from(d)),
+                            Err(_) => Err(format!("Cannot parse '{}' as number", s)),
+                        }
+                    }
+                    Value::Bool(b) => Ok(Robj::from(if *b { 1.0 } else { 0.0 })),
+                    _ => Err(format!("Cannot convert {:?} to number", value)),
+                }
+            }
+            Schema::String { .. } => {
+                // Try direct string first
+                if let Some(s) = value.as_str() {
+                    Ok(Robj::from(s))
+                } else {
+                    // Coerce other types to string
+                    let string_value = match value {
+                        Value::Number(n) => n.to_string(),
+                        Value::Bool(b) => b.to_string(),
+                        Value::Null => "".to_string(),
+                        Value::Array(_) | Value::Object(_) => {
+                            // For complex types, convert to JSON string
+                            serde_json::to_string(value).unwrap_or_default()
+                        }
+                        _ => return Err(format!("Cannot convert {:?} to string", value)),
+                    };
+                    Ok(Robj::from(string_value.as_str()))
+                }
+            }
+            Schema::Logical { .. } => {
+                // Try direct boolean conversion
+                if let Some(b) = value.as_bool() {
+                    return Ok(Robj::from(b));
+                }
+
+                // Try coercion from other types
+                match value {
+                    Value::Number(n) => {
+                        // 0 is false, non-zero is true
+                        if let Some(i) = n.as_i64() {
+                            Ok(Robj::from(i != 0))
+                        } else if let Some(f) = n.as_f64() {
+                            Ok(Robj::from(f != 0.0))
+                        } else {
+                            Ok(Robj::from(true))
+                        }
+                    }
+                    Value::String(s) => {
+                        // Parse common boolean string representations
+                        let s_lower = s.to_lowercase();
+                        match s_lower.as_str() {
+                            "true" | "t" | "yes" | "y" | "1" => Ok(Robj::from(true)),
+                            "false" | "f" | "no" | "n" | "0" | "" => Ok(Robj::from(false)),
+                            _ => Err(format!("Cannot parse '{}' as boolean", s)),
+                        }
+                    }
+                    Value::Null => Ok(Robj::from(false)),
+                    _ => Err(format!("Cannot convert {:?} to boolean", value)),
+                }
+            }
+            Schema::Array { items, .. } => {
+                if let Some(arr) = value.as_array() {
+                    self.apply_to_array(arr, items)
+                } else {
+                    Err(format!("Expected array, got {:?}", value))
+                }
+            }
+            Schema::Map { fields, .. } => {
+                if let Some(obj) = value.as_object() {
+                    self.apply_to_object(obj, fields)
+                } else {
+                    Err(format!("Expected object, got {:?}", value))
+                }
+            }
+            Schema::Any { .. } => {
+                // For 'any', use the generic JSON to R conversion
+                Ok(crate::json_to_r::json_value_to_robj(value))
+            }
+        }
+    }
+
+    /// Apply schema to an array
+    fn apply_to_array(&self, arr: &[Value], item_schema: &Schema) -> StdResult<Robj, String> {
+        // Check if all elements are the same primitive type for vectorization
+        if arr.is_empty() {
+            return Ok(List::from_values(Vec::<Robj>::new()).into_robj());
+        }
+
+        let mut results = Vec::with_capacity(arr.len());
+        for (i, item) in arr.iter().enumerate() {
+            match item_schema.apply(item) {
+                Ok(robj) => results.push(robj),
+                Err(e) => return Err(format!("Error at array index {}: {}", i, e)),
+            }
+        }
+
+        // Try to create a homogeneous vector if possible
+        match item_schema {
+            Schema::Integer { .. } => {
+                // Try to create an integer vector
+                let mut integers = Vec::with_capacity(results.len());
+                let mut all_integers = true;
+                for r in &results {
+                    if let Some(i) = r.as_integer() {
+                        integers.push(i);
+                    } else {
+                        all_integers = false;
+                        break;
+                    }
+                }
+
+                if all_integers {
+                    Ok(Robj::from(integers))
+                } else {
+                    Ok(List::from_values(results).into_robj())
+                }
+            }
+            Schema::Double { .. } => {
+                // Try to create a double vector
+                let mut doubles = Vec::with_capacity(results.len());
+                let mut all_doubles = true;
+                for r in &results {
+                    if let Some(d) = r.as_real() {
+                        doubles.push(d);
+                    } else {
+                        all_doubles = false;
+                        break;
+                    }
+                }
+
+                if all_doubles {
+                    Ok(Robj::from(doubles))
+                } else {
+                    Ok(List::from_values(results).into_robj())
+                }
+            }
+            Schema::String { .. } => {
+                // Try to create a character vector
+                let mut strings = Vec::with_capacity(results.len());
+                let mut all_strings = true;
+                for r in &results {
+                    if let Some(s) = r.as_str() {
+                        strings.push(s.to_string());
+                    } else {
+                        all_strings = false;
+                        break;
+                    }
+                }
+
+                if all_strings {
+                    let str_refs: Vec<&str> = strings.iter().map(|s| s.as_str()).collect();
+                    Ok(Robj::from(str_refs))
+                } else {
+                    Ok(List::from_values(results).into_robj())
+                }
+            }
+            Schema::Logical { .. } => {
+                // Try to create a logical vector
+                let mut logicals = Vec::with_capacity(results.len());
+                let mut all_logicals = true;
+                for r in &results {
+                    if let Some(b) = r.as_bool() {
+                        logicals.push(b);
+                    } else {
+                        all_logicals = false;
+                        break;
+                    }
+                }
+
+                if all_logicals {
+                    Ok(Robj::from(logicals))
+                } else {
+                    Ok(List::from_values(results).into_robj())
+                }
+            }
+            _ => {
+                // For complex types, return as list
+                Ok(List::from_values(results).into_robj())
+            }
+        }
+    }
+
+    /// Apply schema to an object
+    fn apply_to_object(
+        &self,
+        obj: &serde_json::Map<String, Value>,
+        fields: &HashMap<String, Schema>,
+    ) -> StdResult<Robj, String> {
+        let mut names = Vec::with_capacity(fields.len());
+        let mut values = Vec::with_capacity(fields.len());
+
+        for (field_name, field_schema) in fields.iter() {
+            let value = obj.get(field_name);
+
+            match value {
+                Some(v) => {
+                    let converted = field_schema.apply(v)?;
+                    names.push(field_name.as_str());
+                    values.push(converted);
+                }
+                None => {
+                    // Field is missing - check .optional parameter
+                    if field_schema.is_optional() {
+                        // Optional field - use default if available, otherwise NULL
+                        let default_robj = field_schema.get_default();
+                        names.push(field_name.as_str());
+                        if let Some(default) = default_robj {
+                            values.push(default);
+                        } else {
+                            values.push(r!(NULL));
+                        }
+                    } else {
+                        // Not optional - field is required, error regardless of default
+                        return Err(format!("Required field '{}' is missing", field_name));
+                    }
+                }
+            }
+        }
+
+        let mut list = List::from_values(values);
+        list.set_names(names).unwrap();
+        Ok(list.into_robj())
+    }
+
+    /// Check if this schema allows null values
+    fn is_optional(&self) -> bool {
+        match self {
+            Schema::Integer { optional, .. }
+            | Schema::Double { optional, .. }
+            | Schema::String { optional, .. }
+            | Schema::Logical { optional, .. }
+            | Schema::Array { optional, .. }
+            | Schema::Map { optional, .. }
+            | Schema::Any { optional } => *optional,
+        }
+    }
+
+    /// Get the default value for this schema if one is defined
+    fn get_default(&self) -> Option<Robj> {
+        match self {
+            Schema::Integer { default, .. } => default.map(|v| Robj::from(v)),
+            Schema::Double { default, .. } => default.map(|v| Robj::from(v)),
+            Schema::String { default, .. } => default.as_ref().map(|v| Robj::from(v.as_str())),
+            Schema::Logical { default, .. } => default.map(|v| Robj::from(v)),
+            _ => None,
+        }
+    }
+
+    /// Apply schema to a JSON value, filling in defaults for missing fields
+    /// Returns a modified JSON value with defaults applied
+    pub fn apply_defaults(&self, value: &Value) -> StdResult<Value, String> {
+        match self {
+            Schema::Map { fields, .. } => {
+                if let Some(obj) = value.as_object() {
+                    let mut new_obj = serde_json::Map::new();
+
+                    // Copy existing fields and add missing ones with defaults
+                    for (field_name, field_schema) in fields.iter() {
+                        if let Some(v) = obj.get(field_name) {
+                            // Field exists, recursively apply defaults if needed
+                            let processed = field_schema.apply_defaults(v)?;
+                            new_obj.insert(field_name.clone(), processed);
+                        } else {
+                            // Field is missing
+                            if field_schema.is_optional() {
+                                // Add default or null
+                                let default_value = match field_schema.get_default_json() {
+                                    Some(v) => v,
+                                    None => Value::Null,
+                                };
+                                new_obj.insert(field_name.clone(), default_value);
+                            } else {
+                                // Required field missing
+                                return Err(format!("Required field '{}' is missing", field_name));
+                            }
+                        }
+                    }
+
+                    Ok(Value::Object(new_obj))
+                } else {
+                    Err("Expected object for map schema".to_string())
+                }
+            }
+            Schema::Array { items, .. } => {
+                if let Some(arr) = value.as_array() {
+                    let new_arr: StdResult<Vec<Value>, String> = arr
+                        .iter()
+                        .map(|item| items.apply_defaults(item))
+                        .collect();
+                    Ok(Value::Array(new_arr?))
+                } else {
+                    Err("Expected array".to_string())
+                }
+            }
+            _ => {
+                // For primitive types, just return the value as-is
+                Ok(value.clone())
+            }
+        }
+    }
+
+    /// Get the default value as a JSON Value
+    fn get_default_json(&self) -> Option<Value> {
+        match self {
+            Schema::Integer { default, .. } => default.map(|v| Value::Number(v.into())),
+            Schema::Double { default, .. } => default.and_then(|v| {
+                serde_json::Number::from_f64(v).map(Value::Number)
+            }),
+            Schema::String { default, .. } => default.as_ref().map(|v| Value::String(v.clone())),
+            Schema::Logical { default, .. } => default.map(|v| Value::Bool(v)),
+            _ => None,
+        }
+    }
+}

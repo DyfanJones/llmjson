@@ -17,6 +17,9 @@
 - Converts single quotes to double quotes
 - Removes extra non-JSON characters
 - Auto-completes missing values with sensible defaults
+- Returns R objects directly with `return_objects = TRUE`
+- Schema validation and type conversion with intuitive schema builders
+- Default values for missing optional fields
 
 ## Installation
 
@@ -41,7 +44,7 @@ This package requires the Rust toolchain to be installed on your system. If you 
 
 ## Usage
 
-### Repair JSON Strings
+### Basic JSON Repair
 
 ``` r
 library(llmjson)
@@ -63,11 +66,133 @@ repair_json_str("{'name': 'John'}")
 #> [1] "{\"name\":\"John\"}"
 ```
 
+### Return R Objects Directly
+
+Instead of returning a JSON string, you can get R objects directly:
+
+``` r
+# Return as R list instead of JSON string
+result <- repair_json_str('{"name": "Alice", "age": 30}', return_objects = TRUE)
+result
+#> $name
+#> [1] "Alice"
+#>
+#> $age
+#> [1] 30
+
+# Works with all repair functions
+result <- repair_json_file("data.json", return_objects = TRUE)
+```
+
+### Schema Validation and Type Conversion
+
+Define schemas to validate JSON structure and ensure correct R types. The schema system is inspired by the [structr](https://github.com/ropenscilabs/structr) package and provides an intuitive way to define expected JSON structures:
+
+``` r
+# Define a schema for a user object
+schema <- s_map(
+  name = s_string(),
+  age = s_integer(),
+  email = s_string()
+)
+
+# Repair and validate with schema
+result <- repair_json_str(
+  '{"name": "Alice", "age": "30", "email": "alice@example.com"}',
+  schema = schema,
+  return_objects = TRUE
+)
+
+# Note: age is coerced from string "30" to integer 30
+str(result)
+#> List of 3
+#>  $ name : chr "Alice"
+#>  $ age  : int 30
+#>  $ email: chr "alice@example.com"
+```
+
+### Optional Fields and Default Values
+
+Handle missing fields gracefully with optional parameters and defaults:
+
+``` r
+schema <- s_map(
+  name = s_string(),
+  age = s_integer(.optional = TRUE, .default = 0L),
+  active = s_logical(.optional = TRUE, .default = TRUE)
+)
+
+# Missing fields get default values
+result <- repair_json_str(
+  '{"name": "Bob"}',
+  schema = schema,
+  return_objects = TRUE
+)
+
+result
+#> $name
+#> [1] "Bob"
+#>
+#> $age
+#> [1] 0
+#>
+#> $active
+#> [1] TRUE
+```
+
+### Nested Schemas and Arrays
+
+Build complex schemas with nested objects and arrays:
+
+``` r
+# Schema with nested object and array
+schema <- s_map(
+  name = s_string(),
+  address = s_map(
+    city = s_string(),
+    zip = s_integer()
+  ),
+  scores = s_array(s_integer())
+)
+
+json_str <- '{
+  "name": "Alice",
+  "address": {"city": "NYC", "zip": "10001"},
+  "scores": [90, 85, 95]
+}'
+
+result <- repair_json_str(json_str, schema = schema, return_objects = TRUE)
+str(result)
+#> List of 3
+#>  $ name   : chr "Alice"
+#>  $ address:List of 2
+#>   ..$ city: chr "NYC"
+#>   ..$ zip : int 10001
+#>  $ scores : int [1:3] 90 85 95
+```
+
+### Available Schema Builders
+
+- `s_map(...)` - Define a JSON object with named fields
+- `s_integer(.optional, .default)` - Integer field with optional defaults
+- `s_double(.optional, .default)` - Double/numeric field with optional defaults
+- `s_string(.optional, .default)` - String field with optional defaults
+- `s_logical(.optional, .default)` - Logical/boolean field with optional defaults
+- `s_array(items)` - Array with specified item type
+- `s_any()` - Accept any JSON type
+
 ### Repair JSON from Files
 
 ``` r
 # Read and repair JSON from a file
 repair_json_file("malformed.json")
+
+# With schema validation
+schema <- s_map(
+  name = s_string(),
+  age = s_integer(.optional = TRUE, .default = 0L)
+)
+result <- repair_json_file("data.json", schema = schema, return_objects = TRUE)
 ```
 
 ### Repair JSON from Raw Bytes
@@ -77,6 +202,9 @@ repair_json_file("malformed.json")
 raw_data <- charToRaw('{"key": "value",}')
 repair_json_raw(raw_data)
 #> [1] "{\"key\":\"value\"}"
+
+# With return_objects
+result <- repair_json_raw(raw_data, return_objects = TRUE)
 ```
 
 ## Use Case: Working with LLM Outputs
@@ -92,19 +220,45 @@ llm_output <- '{
   ],
 }'
 
+# Option 1: Repair and parse with jsonlite
 repaired <- repair_json_str(llm_output)
 parsed <- jsonlite::fromJSON(repaired)
 print(parsed)
 #>        name age
 #> 1    Alice  30
 #> 2      Bob  25
+
+# Option 2: Use schema with return_objects for type safety
+schema <- s_map(
+  users = s_array(s_map(
+    name = s_string(),
+    age = s_integer()
+  ))
+)
+
+result <- repair_json_str(llm_output, schema = schema, return_objects = TRUE)
+str(result)
+#> List of 1
+#>  $ users:List of 2
+#>   ..$ :List of 2
+#>   .. ..$ name: chr "Alice"
+#>   .. ..$ age : int 30
+#>   ..$ :List of 2
+#>   .. ..$ name: chr "Bob"
+#>   .. ..$ age : int 25
 ```
 
 ## Available Functions
 
-- **`repair_json_str(json_str)`** - Repair a malformed JSON string
-- **`repair_json_file(path)`** - Read and repair JSON from a file
-- **`repair_json_raw(raw_bytes)`** - Repair JSON from a raw byte vector
+All functions support the `schema` and `return_objects` parameters:
+
+- **`repair_json_str(json_str, schema = NULL, return_objects = FALSE)`** - Repair a malformed JSON string
+- **`repair_json_file(path, schema = NULL, return_objects = FALSE)`** - Read and repair JSON from a file
+- **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE)`** - Repair JSON from a raw byte vector
+
+**Parameters:**
+- `schema` - Optional schema definition created with `s_map()` and related functions
+- `return_objects` - If `TRUE`, returns R objects instead of JSON strings
 
 ## Comparison with Similar Packages
 
@@ -118,6 +272,8 @@ While R has several JSON parsing packages like `jsonlite`, they typically fail w
 ## Acknowledgments
 
 This package is a thin wrapper around the [llm_json](https://github.com/oramasearch/llm_json) Rust crate, which is itself a Rust port of the Python [json_repair](https://github.com/mangiucugna/json_repair) library by mangiucugna.
+
+The schema system was inspired by the [structr](https://github.com/ropenscilabs/structr) package, which provides elegant patterns for defining and validating data structures in R.
 
 ## Code of Conduct
 

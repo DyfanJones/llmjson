@@ -4,13 +4,19 @@
 \alias{repair_json_file}
 \title{Repair malformed JSON from a file}
 \usage{
-repair_json_file(path)
+repair_json_file(path, schema = NULL, return_objects = FALSE)
 }
 \arguments{
 \item{path}{A character string with the file path}
+
+\item{schema}{Optional schema definition created with s_map(), s_integer(), etc.}
+
+\item{return_objects}{Logical indicating whether to return R objects (TRUE)
+or JSON string (FALSE, default)}
 }
 \value{
-A character string containing the repaired JSON, or an empty object on error
+A character string containing the repaired JSON, or an R object
+if return_objects is TRUE
 }
 \description{
 This function reads a file containing malformed JSON and repairs it.
@@ -18,5 +24,12 @@ This function reads a file containing malformed JSON and repairs it.
 \examples{
 \dontrun{
 repair_json_file("malformed.json")
+
+# Return R objects instead of JSON string
+repair_json_file("malformed.json", return_objects = TRUE)
+
+# Use schema for validation
+schema <- s_map(name = s_string(), age = s_integer())
+repair_json_file("malformed.json", schema = schema, return_objects = TRUE)
 }
 }

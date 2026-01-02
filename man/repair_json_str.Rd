@@ -4,13 +4,20 @@
 \alias{repair_json_str}
 \title{Repair malformed JSON strings}
 \usage{
-repair_json_str(json_str)
+repair_json_str(json_str, schema = NULL, return_objects = FALSE)
 }
 \arguments{
 \item{json_str}{A character string containing malformed JSON}
+
+\item{schema}{Optional schema definition created with s_map(), s_integer(), etc.
+If provided, validates and converts JSON according to the schema}
+
+\item{return_objects}{Logical indicating whether to return R objects (TRUE)
+or JSON string (FALSE, default)}
 }
 \value{
-A character string containing the repaired JSON
+A character string containing the repaired JSON, or an R object
+if return_objects is TRUE
 }
 \description{
 This function repairs malformed JSON strings, particularly those generated
@@ -20,4 +27,14 @@ unquoted keys, and other common JSON syntax errors.
 \examples{
 repair_json_str('{"key": "value",}')  # Removes trailing comma
 repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
+
+# Return R objects instead of JSON string
+repair_json_str('{"name": "Alice", "age": 30}', return_objects = TRUE)
+
+# Use schema for validation and type conversion
+schema <- s_map(
+  name = s_string(),
+  age = s_integer()
+)
+repair_json_str('{"name": "Alice", "age": 30}', schema = schema, return_objects = TRUE)
 }

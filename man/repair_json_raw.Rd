@@ -4,13 +4,19 @@
 \alias{repair_json_raw}
 \title{Repair malformed JSON from raw bytes}
 \usage{
-repair_json_raw(raw_bytes)
+repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE)
 }
 \arguments{
 \item{raw_bytes}{A raw vector containing malformed JSON bytes}
+
+\item{schema}{Optional schema definition created with s_map(), s_integer(), etc.}
+
+\item{return_objects}{Logical indicating whether to return R objects (TRUE)
+or JSON string (FALSE, default)}
 }
 \value{
-A character string containing the repaired JSON, or an empty object on error
+A character string containing the repaired JSON, or an R object
+if return_objects is TRUE
 }
 \description{
 This function repairs malformed JSON from a raw vector of bytes.
@@ -19,5 +25,12 @@ This function repairs malformed JSON from a raw vector of bytes.
 \dontrun{
 raw_data <- charToRaw('{"key": "value",}')
 repair_json_raw(raw_data)
+
+# Return R objects instead of JSON string
+repair_json_raw(raw_data, return_objects = TRUE)
+
+# Use schema for validation
+schema <- s_map(name = s_string(), age = s_integer())
+repair_json_raw(raw_data, schema = schema, return_objects = TRUE)
 }
 }
