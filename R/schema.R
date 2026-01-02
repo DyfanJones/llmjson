@@ -250,13 +250,12 @@ s_any <- function(.optional = FALSE) {
 #' @param .default Default value to use when field is missing and .optional = TRUE.
 #'   Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))
 #' @param .format Character vector specifying date format(s). Can be:
-#'   \itemize{
-#'     \item A named format: "iso8601" (\%Y-\%m-\%d), "us_date" (\%m/\%d/\%Y),
-#'           "eu_date" (\%d/\%m/\%Y)
-#'     \item A custom strptime format string (e.g., "\%d-\%m-\%Y")
-#'     \item A vector of formats to try in order
-#'   }
-#'   Defaults to "iso8601" (\%Y-\%m-\%d)
+#'   - A named format: "iso8601" (`%Y-%m-%d`), "us_date" (`%m/%d/%Y`),
+#'     "eu_date" (`%d/%m/%Y`)
+#'   - A custom strptime format string (e.g., `"%d-%m-%Y"`)
+#'   - A vector of formats to try in order
+#'
+#'   Defaults to "iso8601" (`%Y-%m-%d`)
 #' @return A schema definition object
 #' @export
 #' @examples
@@ -298,16 +297,15 @@ s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
 #' @param .default Default value to use when field is missing and .optional = TRUE.
 #'   Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:00"))
 #' @param .format Character vector specifying datetime format(s). Can be:
-#'   \itemize{
-#'     \item A named format: "iso8601" (\%Y-\%m-\%dT\%H:\%M:\%S),
-#'           "iso8601z" (\%Y-\%m-\%dT\%H:\%M:\%SZ), "rfc822" (\%a, \%d \%b \%Y \%H:\%M:\%S),
-#'           "us_datetime" (\%m/\%d/\%Y \%H:\%M:\%S), "eu_datetime" (\%d/\%m/\%Y \%H:\%M:\%S)
-#'     \item "unix" or "epoch" to parse numeric Unix timestamps (seconds since 1970-01-01)
-#'     \item "unix_ms" to parse millisecond timestamps
-#'     \item A custom strptime format string
-#'     \item A vector of formats to try in order
-#'   }
-#'   Defaults to "iso8601" (\%Y-\%m-\%dT\%H:\%M:\%S)
+#'   - A named format: "iso8601" (`%Y-%m-%dT%H:%M:%S`),
+#'     "iso8601z" (`%Y-%m-%dT%H:%M:%SZ`), "rfc822" (`%a, %d %b %Y %H:%M:%S`),
+#'     "us_datetime" (`%m/%d/%Y %H:%M:%S`), "eu_datetime" (`%d/%m/%Y %H:%M:%S`)
+#'   - "unix" or "epoch" to parse numeric Unix timestamps (seconds since 1970-01-01)
+#'   - "unix_ms" to parse millisecond timestamps
+#'   - A custom strptime format string
+#'   - A vector of formats to try in order
+#'
+#'   Defaults to "iso8601" (`%Y-%m-%dT%H:%M:%S`)
 #' @param .tz Timezone to use for parsing. Defaults to "UTC"
 #' @return A schema definition object
 #' @export

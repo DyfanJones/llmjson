@@ -15,15 +15,16 @@ Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:
 
 \item{.format}{Character vector specifying datetime format(s). Can be:
 \itemize{
-\item A named format: "iso8601" (\\%Y-\\%m-\\%dT\\%H:\\%M:\\%S),
-"iso8601z" (\\%Y-\\%m-\\%dT\\%H:\\%M:\\%SZ), "rfc822" (\\%a, \\%d \\%b \\%Y \\%H:\\%M:\\%S),
-"us_datetime" (\\%m/\\%d/\\%Y \\%H:\\%M:\\%S), "eu_datetime" (\\%d/\\%m/\\%Y \\%H:\\%M:\\%S)
+\item A named format: "iso8601" (\verb{\%Y-\%m-\%dT\%H:\%M:\%S}),
+"iso8601z" (\verb{\%Y-\%m-\%dT\%H:\%M:\%SZ}), "rfc822" (\verb{\%a, \%d \%b \%Y \%H:\%M:\%S}),
+"us_datetime" (\verb{\%m/\%d/\%Y \%H:\%M:\%S}), "eu_datetime" (\verb{\%d/\%m/\%Y \%H:\%M:\%S})
 \item "unix" or "epoch" to parse numeric Unix timestamps (seconds since 1970-01-01)
 \item "unix_ms" to parse millisecond timestamps
 \item A custom strptime format string
 \item A vector of formats to try in order
 }
-Defaults to "iso8601" (\\%Y-\\%m-\\%dT\\%H:\\%M:\\%S)}
+
+Defaults to "iso8601" (\verb{\%Y-\%m-\%dT\%H:\%M:\%S})}
 
 \item{.tz}{Timezone to use for parsing. Defaults to "UTC"}
 }

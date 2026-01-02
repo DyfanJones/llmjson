@@ -15,12 +15,13 @@ Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))}
 
 \item{.format}{Character vector specifying date format(s). Can be:
 \itemize{
-\item A named format: "iso8601" (\\%Y-\\%m-\\%d), "us_date" (\\%m/\\%d/\\%Y),
-"eu_date" (\\%d/\\%m/\\%Y)
-\item A custom strptime format string (e.g., "\\%d-\\%m-\\%Y")
+\item A named format: "iso8601" (\verb{\%Y-\%m-\%d}), "us_date" (\verb{\%m/\%d/\%Y}),
+"eu_date" (\verb{\%d/\%m/\%Y})
+\item A custom strptime format string (e.g., \code{"\%d-\%m-\%Y"})
 \item A vector of formats to try in order
 }
-Defaults to "iso8601" (\\%Y-\\%m-\\%d)}
+
+Defaults to "iso8601" (\verb{\%Y-\%m-\%d})}
 }
 \value{
 A schema definition object
