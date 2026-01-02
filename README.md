@@ -86,7 +86,7 @@ result <- repair_json_file("data.json", return_objects = TRUE)
 
 ### Schema Validation and Type Conversion
 
-Define schemas to validate JSON structure and ensure correct R types. The schema system is inspired by the [structr](https://github.com/ropenscilabs/structr) package and provides an intuitive way to define expected JSON structures:
+Define schemas to validate JSON structure and ensure correct R types. The schema system is inspired by the [structr](https://github.com/ixpantia/structr) package and provides an intuitive way to define expected JSON structures:
 
 ``` r
 # Define a schema for a user object
@@ -273,7 +273,7 @@ While R has several JSON parsing packages like `jsonlite`, they typically fail w
 
 This package is a thin wrapper around the [llm_json](https://github.com/oramasearch/llm_json) Rust crate, which is itself a Rust port of the Python [json_repair](https://github.com/mangiucugna/json_repair) library by mangiucugna.
 
-The schema system was inspired by the [structr](https://github.com/ropenscilabs/structr) package, which provides elegant patterns for defining and validating data structures in R.
+The schema system was inspired by the [structr](https://github.com/ixpantia/structr) package, which provides elegant patterns for defining and validating data structures in R.
 
 ## Code of Conduct
 

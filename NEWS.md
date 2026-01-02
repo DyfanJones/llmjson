@@ -32,7 +32,7 @@
 
 ### New: Schema Validation System
 
-* Complete schema validation and type conversion system inspired by the [structr](https://github.com/ropenscilabs/structr) package
+* Complete schema validation and type conversion system inspired by the [structr](https://github.com/ixpantia/structr) package
 * Schema builder functions:
   * `s_map()` - Define JSON objects with named fields
   * `s_integer()` - Integer fields with optional defaults
