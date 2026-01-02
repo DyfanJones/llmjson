@@ -24,6 +24,12 @@ impl BuiltSchema {
             }
         }
     }
+
+    /// Print method for R console
+    pub fn print(&self) {
+        print_schema_helper(&self.schema, 0);
+        rprintln!("");
+    }
 }
 
 impl BuiltSchema {
@@ -33,16 +39,118 @@ impl BuiltSchema {
     }
 }
 
+/// Helper function to recursively print schema structure in JSON-like format
+fn print_schema_helper(schema: &Schema, indent: usize) {
+    let padding = "  ".repeat(indent);
+
+    match schema {
+        Schema::Map { fields, optional: _ } => {
+            rprint!("{}{{\n", padding);
+
+            let field_names: Vec<&String> = fields.keys().collect();
+            for (i, field_name) in field_names.iter().enumerate() {
+                let field_schema = &fields[*field_name];
+                rprint!("{}  \"{}\": ", padding, field_name);
+
+                match field_schema {
+                    Schema::Map { .. } | Schema::Array { .. } => {
+                        rprintln!("");
+                        print_schema_helper(field_schema, indent + 1);
+                    }
+                    _ => {
+                        // Inline simple types
+                        let mut type_str = format!("\"{}\"", get_type_name(field_schema));
+                        if field_schema.is_optional() {
+                            type_str.push_str(" (optional)");
+                        }
+                        if let Some(default_str) = get_default_string(field_schema) {
+                            type_str.push_str(&format!(" [default: {}]", default_str));
+                        }
+                        rprint!("{}", type_str);
+                    }
+                }
+
+                if i < field_names.len() - 1 {
+                    rprint!(",");
+                }
+                rprintln!("");
+            }
+            rprint!("{}}}", padding);
+        }
+        Schema::Array { items, optional: _ } => {
+            rprint!("{}[\n", padding);
+            print_schema_helper(items, indent + 1);
+            rprintln!("");
+            rprint!("{}]", padding);
+        }
+        _ => {
+            // Simple types at top level (shouldn't happen in normal usage)
+            let mut type_str = format!("{}\"{}\"", padding, get_type_name(schema));
+            if schema.is_optional() {
+                type_str.push_str(" (optional)");
+            }
+            if let Some(default_str) = get_default_string(schema) {
+                type_str.push_str(&format!(" [default: {}]", default_str));
+            }
+            rprint!("{}", type_str);
+        }
+    }
+}
+
+/// Get the type name for a schema
+fn get_type_name(schema: &Schema) -> &str {
+    match schema {
+        Schema::Integer { .. } => "integer",
+        Schema::Double { .. } => "double",
+        Schema::String { .. } => "string",
+        Schema::Logical { .. } => "logical",
+        Schema::Array { .. } => "array",
+        Schema::Map { .. } => "map",
+        Schema::Any { .. } => "any",
+    }
+}
+
+/// Get the default value as a formatted string
+fn get_default_string(schema: &Schema) -> Option<String> {
+    match schema {
+        Schema::Integer { default, .. } => default.map(|v| v.to_string()),
+        Schema::Double { default, .. } => default.map(|v| v.to_string()),
+        Schema::String { default, .. } => default.as_ref().map(|v| format!("\"{}\"", v)),
+        Schema::Logical { default, .. } => default.map(|v| v.to_string()),
+        _ => None,
+    }
+}
+
 /// Schema definition for JSON validation and conversion
 #[derive(Debug, Clone, PartialEq)]
 pub enum Schema {
-    Integer { optional: bool, default: Option<i32> },
-    Double { optional: bool, default: Option<f64> },
-    String { optional: bool, default: Option<String> },
-    Logical { optional: bool, default: Option<bool> },
-    Array { items: Box<Schema>, optional: bool },
-    Map { fields: HashMap<String, Schema>, optional: bool },
-    Any { optional: bool },
+    Integer {
+        optional: bool,
+        default: Option<i32>,
+    },
+    Double {
+        optional: bool,
+        default: Option<f64>,
+    },
+    String {
+        optional: bool,
+        default: Option<String>,
+    },
+    Logical {
+        optional: bool,
+        default: Option<bool>,
+    },
+    Array {
+        items: Box<Schema>,
+        optional: bool,
+    },
+    Map {
+        fields: HashMap<String, Schema>,
+        optional: bool,
+    },
+    Any {
+        optional: bool,
+    },
 }
 
 impl Schema {
@@ -64,9 +172,7 @@ impl Schema {
             .find(|(name, _)| *name == "type")
             .ok_or("Schema must have a 'type' field")?
             .1;
-        let schema_type = type_robj
-            .as_str()
-            .ok_or("Schema 'type' must be a string")?;
+        let schema_type = type_robj.as_str().ok_or("Schema 'type' must be a string")?;
 
         // Get the 'optional' field
         let optional = list
@@ -124,9 +230,7 @@ impl Schema {
                     .find(|(name, _)| *name == "fields")
                     .ok_or("Map schema must have 'fields' field")?
                     .1;
-                let fields_list = fields_robj
-                    .as_list()
-                    .ok_or("Map 'fields' must be a list")?;
+                let fields_list = fields_robj.as_list().ok_or("Map 'fields' must be a list")?;
 
                 let mut fields = HashMap::new();
                 for (name, field_schema) in fields_list.iter() {
@@ -478,10 +582,8 @@ impl Schema {
             }
             Schema::Array { items, .. } => {
                 if let Some(arr) = value.as_array() {
-                    let new_arr: StdResult<Vec<Value>, String> = arr
-                        .iter()
-                        .map(|item| items.apply_defaults(item))
-                        .collect();
+                    let new_arr: StdResult<Vec<Value>, String> =
+                        arr.iter().map(|item| items.apply_defaults(item)).collect();
                     Ok(Value::Array(new_arr?))
                 } else {
                     Err("Expected array".to_string())
@@ -498,9 +600,9 @@ impl Schema {
     fn get_default_json(&self) -> Option<Value> {
         match self {
             Schema::Integer { default, .. } => default.map(|v| Value::Number(v.into())),
-            Schema::Double { default, .. } => default.and_then(|v| {
-                serde_json::Number::from_f64(v).map(Value::Number)
-            }),
+            Schema::Double { default, .. } => {
+                default.and_then(|v| serde_json::Number::from_f64(v).map(Value::Number))
+            }
             Schema::String { default, .. } => default.as_ref().map(|v| Value::String(v.clone())),
             Schema::Logical { default, .. } => default.map(|v| Value::Bool(v)),
             _ => None,

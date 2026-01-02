@@ -78,8 +78,8 @@ fn apply_schema_to_json_string(value: &Value, schema: &Robj) -> Robj {
 /// repair_json_str('{"key": "value",}')  # Removes trailing comma
 /// repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 /// repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
-#[extendr]
-fn repair_json_str(json_str: &str, schema: Robj, return_objects: bool) -> Robj {
+#[extendr(r_name = "repair_json_str")]
+fn repair_json_str_impl(json_str: &str, #[default = "NULL"] schema: Robj, #[default = "FALSE"] return_objects: bool) -> Robj {
     let options = llm_json::RepairOptions::default();
 
     match llm_json::loads(json_str, &options) {
@@ -115,8 +115,8 @@ fn repair_json_str(json_str: &str, schema: Robj, return_objects: bool) -> Robj {
 /// repair_json_file("malformed.json")
 /// repair_json_file("malformed.json", return_objects = TRUE)
 /// }
-#[extendr]
-fn repair_json_file(path: &str, schema: Robj, return_objects: bool) -> Robj {
+#[extendr(r_name = "repair_json_file")]
+fn repair_json_file_impl(path: &str, #[default = "NULL"] schema: Robj, #[default = "FALSE"] return_objects: bool) -> Robj {
     if !std::path::Path::new(path).exists() {
         throw_r_error(&format!("File not found: '{}'. Please check the file path.", path));
     }
@@ -159,8 +159,8 @@ fn repair_json_file(path: &str, schema: Robj, return_objects: bool) -> Robj {
 /// repair_json_raw(raw_data)
 /// repair_json_raw(raw_data, return_objects = TRUE)
 /// }
-#[extendr]
-fn repair_json_raw(raw_bytes: &[u8], schema: Robj, return_objects: bool) -> Robj {
+#[extendr(r_name = "repair_json_raw")]
+fn repair_json_raw_impl(raw_bytes: &[u8], #[default = "NULL"] schema: Robj, #[default = "FALSE"] return_objects: bool) -> Robj {
     if raw_bytes.is_empty() {
         throw_r_error("Empty raw vector provided. Please provide valid JSON bytes.");
     }
@@ -190,8 +190,8 @@ fn repair_json_raw(raw_bytes: &[u8], schema: Robj, return_objects: bool) -> Robj
 // Macro to generate exports
 extendr_module! {
     mod llmjson;
-    fn repair_json_str;
-    fn repair_json_file;
-    fn repair_json_raw;
+    fn repair_json_str_impl;
+    fn repair_json_file_impl;
+    fn repair_json_raw_impl;
     use schema;
 }

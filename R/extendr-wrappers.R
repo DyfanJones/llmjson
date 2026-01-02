@@ -25,7 +25,7 @@ NULL
 #' repair_json_str('{"key": "value",}')  # Removes trailing comma
 #' repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 #' repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
-repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_str, json_str, schema, return_objects)
+repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_str_impl, json_str, schema, return_objects)
 
 #' Repair malformed JSON from a file
 #'
@@ -41,7 +41,7 @@ repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) .Ca
 #' repair_json_file("malformed.json")
 #' repair_json_file("malformed.json", return_objects = TRUE)
 #' }
-repair_json_file <- function(path, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_file, path, schema, return_objects)
+repair_json_file <- function(path, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_file_impl, path, schema, return_objects)
 
 #' Repair malformed JSON from raw bytes
 #'
@@ -58,11 +58,13 @@ repair_json_file <- function(path, schema = NULL, return_objects = FALSE) .Call(
 #' repair_json_raw(raw_data)
 #' repair_json_raw(raw_data, return_objects = TRUE)
 #' }
-repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_raw, raw_bytes, schema, return_objects)
+repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_raw_impl, raw_bytes, schema, return_objects)
 
 BuiltSchema <- new.env(parent = emptyenv())
 
 BuiltSchema$new <- function(robj) .Call(wrap__BuiltSchema__new, robj)
+
+BuiltSchema$print <- function() invisible(.Call(wrap__BuiltSchema__print, self))
 
 #' @export
 `$.BuiltSchema` <- function (self, name) { func <- BuiltSchema[[name]]; environment(func) <- environment(); func }

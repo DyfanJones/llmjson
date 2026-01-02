@@ -40,6 +40,15 @@ build_schema <- function(schema) {
   BuiltSchema$new(schema)
 }
 
+#' Print method for built schema objects
+#' @param x A built schema object
+#' @param ... Additional arguments (ignored)
+#' @export
+print.BuiltSchema <- function(x, ...) {
+  x$print()
+  invisible(x)
+}
+
 #' Create a schema for a JSON object/map
 #'
 #' @param ... Named arguments defining the schema for each field.
@@ -242,28 +251,57 @@ s_any <- function(.optional = FALSE) {
 print.llmjson_schema <- function(x, ..., indent = 0) {
   padding <- strrep("  ", indent)
 
-  if (x$optional) {
-    cat(padding, "Optional ", sep = "")
+  if (x$type == "map") {
+    cat(padding, "{\n", sep = "")
+    field_names <- names(x$fields)
+    for (i in seq_along(field_names)) {
+      name <- field_names[i]
+      field <- x$fields[[name]]
+      cat(padding, '  "', name, '": ', sep = "")
+
+      if (inherits(field, "llmjson_schema")) {
+        if (field$type %in% c("map", "array")) {
+          cat("\n")
+          print(field, indent = indent + 1)
+        } else {
+          # Inline simple types
+          type_str <- paste0('"', field$type, '"')
+          if (field$optional) {
+            type_str <- paste0(type_str, " (optional)")
+          }
+          if (!is.null(field$default)) {
+            default_val <- if (is.character(field$default)) {
+              paste0('"', field$default, '"')
+            } else {
+              as.character(field$default)
+            }
+            type_str <- paste0(type_str, " [default: ", default_val, "]")
+          }
+          cat(type_str)
+        }
+      }
+
+      if (i < length(field_names)) {
+        cat(",")
+      }
+      cat("\n")
+    }
+    cat(padding, "}", sep = "")
+  } else if (x$type == "array") {
+    cat(padding, "[\n", sep = "")
+    print(x$items, indent = indent + 1)
+    cat("\n", padding, "]", sep = "")
   } else {
-    cat(padding, sep = "")
+    # Should not reach here in normal usage
+    type_str <- paste0('"', x$type, '"')
+    if (x$optional) {
+      type_str <- paste0(type_str, " (optional)")
+    }
+    cat(padding, type_str, sep = "")
   }
 
-  if (x$type == "map") {
-    cat("Map:\n")
-    for (name in names(x$fields)) {
-      cat(padding, "  ", name, ": ", sep = "")
-      if (inherits(x$fields[[name]], "llmjson_schema")) {
-        cat("\n")
-        print(x$fields[[name]], indent = indent + 2)
-      } else {
-        cat(x$fields[[name]], "\n", sep = "")
-      }
-    }
-  } else if (x$type == "array") {
-    cat("Array of:\n")
-    print(x$items, indent = indent + 1)
-  } else {
-    cat(toupper(substring(x$type, 1, 1)), substring(x$type, 2), "\n", sep = "")
+  if (indent == 0) {
+    cat("\n")
   }
 
   invisible(x)
