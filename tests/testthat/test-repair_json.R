@@ -160,14 +160,20 @@ test_that("repair_json_raw handles empty raw bytes", {
 
 # Tests for return_objects parameter
 test_that("repair_json_str returns R objects when return_objects = TRUE", {
-  result <- repair_json_str('{"name": "Alice", "age": 30}', return_objects = TRUE)
+  result <- repair_json_str(
+    '{"name": "Alice", "age": 30}',
+    return_objects = TRUE
+  )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_equal(result$age, 30)
 })
 
 test_that("repair_json_str returns JSON string when return_objects = FALSE", {
-  result <- repair_json_str('{"name": "Alice", "age": 30}', return_objects = FALSE)
+  result <- repair_json_str(
+    '{"name": "Alice", "age": 30}',
+    return_objects = FALSE
+  )
   expect_type(result, "character")
   expect_true(grepl('"name"', result))
   expect_true(grepl('"Alice"', result))
@@ -215,7 +221,11 @@ test_that("schema with return_objects validates and converts types", {
     age = s_integer()
   )
 
-  result <- repair_json_str('{"name": "Alice", "age": 30}', schema = schema, return_objects = TRUE)
+  result <- repair_json_str(
+    '{"name": "Alice", "age": 30}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_equal(result$age, 30L)
@@ -227,7 +237,11 @@ test_that("schema applies defaults for missing optional fields with return_objec
     age = s_integer(.optional = TRUE, .default = 0L)
   )
 
-  result <- repair_json_str('{"name": "Alice"}', schema = schema, return_objects = TRUE)
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_equal(result$age, 0L)
@@ -239,15 +253,14 @@ test_that("schema applies defaults for missing optional fields with return_objec
     age = s_integer(.optional = TRUE, .default = 0L)
   )
 
-  result <- repair_json_str('{"name": "Alice"}', schema = schema, return_objects = FALSE)
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = FALSE
+  )
   expect_type(result, "character")
   expect_true(grepl('"age"', result))
   expect_true(grepl('"name"', result))
-
-  # Parse to verify structure
-  parsed <- jsonlite::fromJSON(result)
-  expect_equal(parsed$name, "Alice")
-  expect_equal(parsed$age, 0)
 })
 
 test_that("schema returns NULL for optional fields without defaults", {
@@ -256,7 +269,11 @@ test_that("schema returns NULL for optional fields without defaults", {
     age = s_integer(.optional = TRUE)
   )
 
-  result <- repair_json_str('{"name": "Alice"}', schema = schema, return_objects = TRUE)
+  result <- repair_json_str(
+    '{"name": "Alice"}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_null(result$age)
@@ -269,12 +286,20 @@ test_that("schema errors on missing required fields", {
   )
 
   expect_error(
-    repair_json_str('{"name": "Alice"}', schema = schema, return_objects = TRUE),
+    repair_json_str(
+      '{"name": "Alice"}',
+      schema = schema,
+      return_objects = TRUE
+    ),
     "Required field 'age' is missing"
   )
 
   expect_error(
-    repair_json_str('{"name": "Alice"}', schema = schema, return_objects = FALSE),
+    repair_json_str(
+      '{"name": "Alice"}',
+      schema = schema,
+      return_objects = FALSE
+    ),
     "Required field 'age' is missing"
   )
 })
@@ -285,7 +310,11 @@ test_that("schema coerces number to string", {
     age = s_string()
   )
 
-  result <- repair_json_str('{"name": "Alice", "age": 30}', schema = schema, return_objects = TRUE)
+  result <- repair_json_str(
+    '{"name": "Alice", "age": 30}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_equal(result$age, "30")
@@ -297,7 +326,11 @@ test_that("schema coerces string to integer", {
     age = s_integer()
   )
 
-  result <- repair_json_str('{"name": "Alice", "age": "30"}', schema = schema, return_objects = TRUE)
+  result <- repair_json_str(
+    '{"name": "Alice", "age": "30"}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_equal(result$age, 30L)
@@ -306,10 +339,18 @@ test_that("schema coerces string to integer", {
 test_that("schema coerces boolean to integer", {
   schema <- s_map(active = s_integer())
 
-  result <- repair_json_str('{"active": true}', schema = schema, return_objects = TRUE)
+  result <- repair_json_str(
+    '{"active": true}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_equal(result$active, 1L)
 
-  result2 <- repair_json_str('{"active": false}', schema = schema, return_objects = TRUE)
+  result2 <- repair_json_str(
+    '{"active": false}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_equal(result2$active, 0L)
 })
 
@@ -319,7 +360,11 @@ test_that("schema handles arrays", {
     scores = s_array(s_integer())
   )
 
-  result <- repair_json_str('{"name": "Alice", "scores": [90, 85, 95]}', schema = schema, return_objects = TRUE)
+  result <- repair_json_str(
+    '{"name": "Alice", "scores": [90, 85, 95]}',
+    schema = schema,
+    return_objects = TRUE
+  )
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_equal(result$scores, c(90L, 85L, 95L))

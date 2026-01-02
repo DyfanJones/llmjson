@@ -220,13 +220,13 @@ llm_output <- '{
   ],
 }'
 
-# Option 1: Repair and parse with jsonlite
+# Option 1: Repair and parse with your chosen JSON parser (e.g., jsonlite)
 repaired <- repair_json_str(llm_output)
-parsed <- jsonlite::fromJSON(repaired)
-print(parsed)
-#>        name age
-#> 1    Alice  30
-#> 2      Bob  25
+(parsed <- jsonlite::fromJSON(repaired))
+#> $users
+#>   age  name
+#> 1  30 Alice
+#> 2  25   Bob
 
 # Option 2: Use schema with return_objects for type safety
 schema <- s_map(

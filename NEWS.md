@@ -28,7 +28,6 @@
 
 * Added `return_objects` parameter to all repair functions
   * When `TRUE`, returns R objects (lists, vectors) instead of JSON strings
-  * Eliminates need for separate `jsonlite::fromJSON()` call
   * Works with all three repair functions: `repair_json_str()`, `repair_json_file()`, and `repair_json_raw()`
 
 ### New: Schema Validation System
