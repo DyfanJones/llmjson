@@ -1,11 +1,14 @@
 use extendr_api::prelude::*;
-use llm_json::{from_file, load, loads, RepairOptions};
 use serde_json::{to_string, Value};
 use std::io::Cursor;
 use std::path::Path;
 
 mod json_to_r;
+mod llm_json;
 mod schema;
+
+// Re-export what we need from llm_json
+use llm_json::{from_file, load, loads, RepairOptions};
 
 /// Helper function to get a Schema from an Robj (either external pointer or list)
 fn get_schema(schema_robj: &Robj) -> Option<schema::Schema> {
