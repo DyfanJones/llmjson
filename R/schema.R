@@ -308,6 +308,7 @@ s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
 #'   Defaults to "iso8601" (`%Y-%m-%dT%H:%M:%S`)
 #' @param .tz Timezone to use for parsing. Defaults to "UTC"
 #' @return A schema definition object
+#' @name s_timestamp
 #' @export
 #' @examples
 #' s_posixct()
@@ -316,7 +317,12 @@ s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
 #' s_posixct(.format = "unix")
 #' s_posixct(.format = c("iso8601", "iso8601z"))
 #' s_posixct(.tz = "America/New_York")
-s_posixct <- function(.optional = FALSE, .default = NULL, .format = "iso8601", .tz = "UTC") {
+s_posixct <- function(
+  .optional = FALSE,
+  .default = NULL,
+  .format = "iso8601",
+  .tz = "UTC"
+) {
   schema <- list(
     type = "posixct",
     optional = .optional
@@ -342,6 +348,10 @@ s_posixct <- function(.optional = FALSE, .default = NULL, .format = "iso8601", .
 
   structure(schema, class = "llmjson_schema")
 }
+
+#' @rdname s_timestamp
+#' @export
+s_timestamp <- s_posixct
 
 #' @export
 print.llmjson_schema <- function(x, ...) {
