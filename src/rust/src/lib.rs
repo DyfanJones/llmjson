@@ -1,6 +1,8 @@
 use extendr_api::prelude::*;
-use serde_json::Value;
+use llm_json::{from_file, load, loads, RepairOptions};
+use serde_json::{to_string, Value};
 use std::io::Cursor;
+use std::path::Path;
 
 mod json_to_r;
 mod schema;
@@ -25,7 +27,7 @@ fn get_schema(schema_robj: &Robj) -> Option<schema::Schema> {
     }
 }
 
-/// Helper function to apply schema and return R objects
+/// Helper functensure_ascii: boolion to apply schema and return R objects
 fn apply_schema_to_robj(value: &Value, schema: &Robj) -> Robj {
     if let Some(s) = get_schema(schema) {
         match s.apply(value) {
@@ -55,11 +57,18 @@ fn apply_schema_to_json_string(value: &Value, schema: &Robj) -> Robj {
     };
 
     // Convert to JSON string
-    match serde_json::to_string(&final_value) {
+    match to_string(&final_value) {
         Ok(json_str) => Robj::from(json_str),
         Err(e) => {
             throw_r_error(&format!("Failed to serialize JSON: {}", e));
         }
+    }
+}
+
+fn create_repair_options(ensure_ascii: bool) -> RepairOptions {
+    RepairOptions {
+        ensure_ascii,
+        ..Default::default()
     }
 }
 
@@ -72,6 +81,7 @@ fn apply_schema_to_json_string(value: &Value, schema: &Robj) -> Robj {
 /// @param json_str A character string containing malformed JSON
 /// @param schema Optional schema definition for validation and type conversion
 /// @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+/// @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
 /// @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 /// @export
 /// @examples
@@ -79,10 +89,15 @@ fn apply_schema_to_json_string(value: &Value, schema: &Robj) -> Robj {
 /// repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 /// repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
 #[extendr(r_name = "repair_json_str")]
-fn repair_json_str_impl(json_str: &str, #[default = "NULL"] schema: Robj, #[default = "FALSE"] return_objects: bool) -> Robj {
-    let options = llm_json::RepairOptions::default();
+fn repair_json_str_impl(
+    json_str: &str,
+    #[default = "NULL"] schema: Robj,
+    #[default = "FALSE"] return_objects: bool,
+    #[default = "TRUE"] ensure_ascii: bool,
+) -> Robj {
+    let options: RepairOptions = create_repair_options(ensure_ascii);
 
-    match llm_json::loads(json_str, &options) {
+    match loads(json_str, &options) {
         Ok(value) => {
             if return_objects {
                 apply_schema_to_robj(&value, &schema)
@@ -108,6 +123,7 @@ fn repair_json_str_impl(json_str: &str, #[default = "NULL"] schema: Robj, #[defa
 /// @param path A character string with the file path
 /// @param schema Optional schema definition for validation and type conversion
 /// @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+/// @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
 /// @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 /// @export
 /// @examples
@@ -116,14 +132,22 @@ fn repair_json_str_impl(json_str: &str, #[default = "NULL"] schema: Robj, #[defa
 /// repair_json_file("malformed.json", return_objects = TRUE)
 /// }
 #[extendr(r_name = "repair_json_file")]
-fn repair_json_file_impl(path: &str, #[default = "NULL"] schema: Robj, #[default = "FALSE"] return_objects: bool) -> Robj {
-    if !std::path::Path::new(path).exists() {
-        throw_r_error(&format!("File not found: '{}'. Please check the file path.", path));
+fn repair_json_file_impl(
+    path: &str,
+    #[default = "NULL"] schema: Robj,
+    #[default = "FALSE"] return_objects: bool,
+    #[default = "TRUE"] ensure_ascii: bool,
+) -> Robj {
+    if !Path::new(path).exists() {
+        throw_r_error(&format!(
+            "File not found: '{}'. Please check the file path.",
+            path
+        ));
     }
 
-    let options = llm_json::RepairOptions::default();
+    let options: RepairOptions = create_repair_options(ensure_ascii);
 
-    match llm_json::from_file(path, &options) {
+    match from_file(path, &options) {
         Ok(value) => {
             if return_objects {
                 apply_schema_to_robj(&value, &schema)
@@ -151,6 +175,7 @@ fn repair_json_file_impl(path: &str, #[default = "NULL"] schema: Robj, #[default
 /// @param raw_bytes A raw vector containing malformed JSON bytes
 /// @param schema Optional schema definition for validation and type conversion
 /// @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+/// @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
 /// @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 /// @export
 /// @examples
@@ -160,15 +185,20 @@ fn repair_json_file_impl(path: &str, #[default = "NULL"] schema: Robj, #[default
 /// repair_json_raw(raw_data, return_objects = TRUE)
 /// }
 #[extendr(r_name = "repair_json_raw")]
-fn repair_json_raw_impl(raw_bytes: &[u8], #[default = "NULL"] schema: Robj, #[default = "FALSE"] return_objects: bool) -> Robj {
+fn repair_json_raw_impl(
+    raw_bytes: &[u8],
+    #[default = "NULL"] schema: Robj,
+    #[default = "FALSE"] return_objects: bool,
+    #[default = "TRUE"] ensure_ascii: bool,
+) -> Robj {
     if raw_bytes.is_empty() {
         throw_r_error("Empty raw vector provided. Please provide valid JSON bytes.");
     }
 
-    let options = llm_json::RepairOptions::default();
+    let options: RepairOptions = create_repair_options(ensure_ascii);
     let cursor = Cursor::new(raw_bytes);
 
-    match llm_json::load(cursor, &options) {
+    match load(cursor, &options) {
         Ok(value) => {
             if return_objects {
                 apply_schema_to_robj(&value, &schema)

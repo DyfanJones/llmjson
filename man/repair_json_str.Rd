@@ -4,7 +4,12 @@
 \alias{repair_json_str}
 \title{Repair malformed JSON strings}
 \usage{
-repair_json_str(json_str, schema = NULL, return_objects = FALSE)
+repair_json_str(
+  json_str,
+  schema = NULL,
+  return_objects = FALSE,
+  ensure_ascii = TRUE
+)
 }
 \arguments{
 \item{json_str}{A character string containing malformed JSON}
@@ -12,6 +17,8 @@ repair_json_str(json_str, schema = NULL, return_objects = FALSE)
 \item{schema}{Optional schema definition for validation and type conversion}
 
 \item{return_objects}{Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)}
+
+\item{ensure_ascii}{Logical; if TRUE, escape non-ASCII characters}
 }
 \value{
 A character string containing the repaired JSON, or an R object if return_objects is TRUE

@@ -19,13 +19,14 @@ NULL
 #' @param json_str A character string containing malformed JSON
 #' @param schema Optional schema definition for validation and type conversion
 #' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+#' @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
 #' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
 #' repair_json_str('{"key": "value",}')  # Removes trailing comma
 #' repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 #' repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
-repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_str_impl, json_str, schema, return_objects)
+repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_str_impl, json_str, schema, return_objects, ensure_ascii)
 
 #' Repair malformed JSON from a file
 #'
@@ -34,6 +35,7 @@ repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) .Ca
 #' @param path A character string with the file path
 #' @param schema Optional schema definition for validation and type conversion
 #' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+#' @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
 #' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
@@ -41,7 +43,7 @@ repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE) .Ca
 #' repair_json_file("malformed.json")
 #' repair_json_file("malformed.json", return_objects = TRUE)
 #' }
-repair_json_file <- function(path, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_file_impl, path, schema, return_objects)
+repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_file_impl, path, schema, return_objects, ensure_ascii)
 
 #' Repair malformed JSON from raw bytes
 #'
@@ -50,6 +52,7 @@ repair_json_file <- function(path, schema = NULL, return_objects = FALSE) .Call(
 #' @param raw_bytes A raw vector containing malformed JSON bytes
 #' @param schema Optional schema definition for validation and type conversion
 #' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
+#' @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
 #' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
@@ -58,7 +61,7 @@ repair_json_file <- function(path, schema = NULL, return_objects = FALSE) .Call(
 #' repair_json_raw(raw_data)
 #' repair_json_raw(raw_data, return_objects = TRUE)
 #' }
-repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE) .Call(wrap__repair_json_raw_impl, raw_bytes, schema, return_objects)
+repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_raw_impl, raw_bytes, schema, return_objects, ensure_ascii)
 
 BuiltSchema <- new.env(parent = emptyenv())
 
