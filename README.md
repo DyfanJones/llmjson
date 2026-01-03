@@ -301,15 +301,16 @@ str(result)
 
 ### Repair Functions
 
-All repair functions support the `schema` and `return_objects` parameters:
+All repair functions support the `schema`, `return_objects`, and `ensure_ascii` parameters:
 
-- **`repair_json_str(json_str, schema = NULL, return_objects = FALSE)`** - Repair a malformed JSON string
-- **`repair_json_file(path, schema = NULL, return_objects = FALSE)`** - Read and repair JSON from a file
-- **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE)`** - Repair JSON from a raw byte vector
+- **`repair_json_str(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE)`** - Repair a malformed JSON string
+- **`repair_json_file(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE)`** - Read and repair JSON from a file
+- **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE)`** - Repair JSON from a raw byte vector
 
 **Parameters:**
 - `schema` - Optional schema definition (R list from `s_map()`, etc.) or built schema (from `build_schema()`)
 - `return_objects` - If `TRUE`, returns R objects instead of JSON strings
+- `ensure_ascii` - If `TRUE` (default), escape non-ASCII characters in the output JSON
 
 ### Schema Functions
 
