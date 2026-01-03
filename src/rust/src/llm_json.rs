@@ -3,9 +3,22 @@
 //! A Rust library to repair broken JSON strings, particularly useful for handling
 //! malformed JSON output from Large Language Models (LLMs).
 //!
-//! This is a porting of the Python library json_repair (https://github.com/mangiucugna/json_repair),
-//! written by Stefano Baccianella (https://github.com/mangiucugna) and published under the MIT license.
-//! All credits go to the original author for the amazing work.
+//! ## Attribution
+//!
+//! This code is vendored from the llm_json Rust crate v1.0.2
+//! (https://github.com/ribelo/llm_json), originally written by Ribelo.
+//!
+//! The llm_json crate is a porting of the Python library json_repair
+//! (https://github.com/mangiucugna/json_repair), written by Stefano Baccianella
+//! (https://github.com/mangiucugna) and published under the MIT license.
+//!
+//! All credits go to the original authors for the amazing work.
+//!
+//! ## Modifications
+//!
+//! This vendored version includes bug fixes not present in llm_json v1.0.2:
+//! - Fixed array parsing to correctly detect opening '[' when it appears before '{'
+//!   (original code would skip array wrapper and only parse first object)
 //!
 //! ## Features
 //!
