@@ -319,6 +319,8 @@ All repair functions support the `schema` and `return_objects` parameters:
 - **`s_double(.optional, .default)`** - Double/numeric field with optional defaults
 - **`s_string(.optional, .default)`** - String field with optional defaults
 - **`s_logical(.optional, .default)`** - Logical/boolean field with optional defaults
+- **`s_date(.optional, .default, .format)`** - Date field with format specification
+- **`s_posixct(.optional, .default, .format, .tz)`** / **`s_timestamp()`** - POSIXct datetime field
 - **`s_array(items, .optional)`** - Array with specified item type
 - **`s_any(.optional)`** - Accept any JSON type
 

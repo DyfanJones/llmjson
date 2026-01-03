@@ -85,8 +85,8 @@ s_map <- function(..., .optional = FALSE) {
 #'
 #' @param .optional Logical; if TRUE, this value can be null and a missing field
 #'   will not cause an error
-#' @param .default Default value to use when field is missing and .optional = TRUE.
-#'   Must be a single integer value (e.g., 0L, 1L)
+#' @param .default Default value to use when field is missing. Only applies to
+#'   required fields (.optional = FALSE). Must be a single integer value (e.g., 0L, 1L)
 #' @return A schema definition object
 #' @export
 #' @examples
@@ -113,8 +113,8 @@ s_integer <- function(.optional = FALSE, .default = NULL) {
 #'
 #' @param .optional Logical; if TRUE, this value can be null and a missing field
 #'   will not cause an error
-#' @param .default Default value to use when field is missing and .optional = TRUE.
-#'   Must be a single numeric value (e.g., 0.0, 1.5)
+#' @param .default Default value to use when field is missing. Only applies to
+#'   required fields (.optional = FALSE). Must be a single numeric value (e.g., 0.0, 1.5)
 #' @return A schema definition object
 #' @export
 #' @examples
@@ -141,8 +141,8 @@ s_double <- function(.optional = FALSE, .default = NULL) {
 #'
 #' @param .optional Logical; if TRUE, this value can be null and a missing field
 #'   will not cause an error
-#' @param .default Default value to use when field is missing and .optional = TRUE.
-#'   Must be a single character value (e.g., "", "unknown")
+#' @param .default Default value to use when field is missing. Only applies to
+#'   required fields (.optional = FALSE). Must be a single character value (e.g., "", "unknown")
 #' @return A schema definition object
 #' @export
 #' @examples
@@ -169,8 +169,8 @@ s_string <- function(.optional = FALSE, .default = NULL) {
 #'
 #' @param .optional Logical; if TRUE, this value can be null and a missing field
 #'   will not cause an error
-#' @param .default Default value to use when field is missing and .optional = TRUE.
-#'   Must be a single logical value (TRUE or FALSE)
+#' @param .default Default value to use when field is missing. Only applies to
+#'   required fields (.optional = FALSE). Must be a single logical value (TRUE or FALSE)
 #' @return A schema definition object
 #' @export
 #' @examples
@@ -247,8 +247,8 @@ s_any <- function(.optional = FALSE) {
 #'
 #' @param .optional Logical; if TRUE, this value can be null and a missing field
 #'   will not cause an error
-#' @param .default Default value to use when field is missing and .optional = TRUE.
-#'   Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))
+#' @param .default Default value to use when field is missing. Only applies to
+#'   required fields (.optional = FALSE). Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))
 #' @param .format Character vector specifying date format(s). Can be:
 #'   - A named format: "iso8601" (`%Y-%m-%d`), "us_date" (`%m/%d/%Y`),
 #'     "eu_date" (`%d/%m/%Y`)
@@ -294,8 +294,8 @@ s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
 #'
 #' @param .optional Logical; if TRUE, this value can be null and a missing field
 #'   will not cause an error
-#' @param .default Default value to use when field is missing and .optional = TRUE.
-#'   Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:00"))
+#' @param .default Default value to use when field is missing. Only applies to
+#'   required fields (.optional = FALSE). Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:00"))
 #' @param .format Character vector specifying datetime format(s). Can be:
 #'   - A named format: "iso8601" (`%Y-%m-%dT%H:%M:%S`),
 #'     "iso8601z" (`%Y-%m-%dT%H:%M:%SZ`), "rfc822" (`%a, %d %b %Y %H:%M:%S`),

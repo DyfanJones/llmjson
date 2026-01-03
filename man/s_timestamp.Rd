@@ -18,8 +18,8 @@ s_timestamp(
 \item{.optional}{Logical; if TRUE, this value can be null and a missing field
 will not cause an error}
 
-\item{.default}{Default value to use when field is missing and .optional = TRUE.
-Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:00"))}
+\item{.default}{Default value to use when field is missing. Only applies to
+required fields (.optional = FALSE). Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:00"))}
 
 \item{.format}{Character vector specifying datetime format(s). Can be:
 \itemize{

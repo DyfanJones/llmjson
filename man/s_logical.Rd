@@ -10,8 +10,8 @@ s_logical(.optional = FALSE, .default = NULL)
 \item{.optional}{Logical; if TRUE, this value can be null and a missing field
 will not cause an error}
 
-\item{.default}{Default value to use when field is missing and .optional = TRUE.
-Must be a single logical value (TRUE or FALSE)}
+\item{.default}{Default value to use when field is missing. Only applies to
+required fields (.optional = FALSE). Must be a single logical value (TRUE or FALSE)}
 }
 \value{
 A schema definition object

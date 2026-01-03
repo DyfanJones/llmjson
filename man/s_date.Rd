@@ -10,8 +10,8 @@ s_date(.optional = FALSE, .default = NULL, .format = "iso8601")
 \item{.optional}{Logical; if TRUE, this value can be null and a missing field
 will not cause an error}
 
-\item{.default}{Default value to use when field is missing and .optional = TRUE.
-Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))}
+\item{.default}{Default value to use when field is missing. Only applies to
+required fields (.optional = FALSE). Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))}
 
 \item{.format}{Character vector specifying date format(s). Can be:
 \itemize{
