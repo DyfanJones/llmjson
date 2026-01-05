@@ -15,13 +15,13 @@
 \usage{
 json_object(..., .optional = FALSE)
 
-json_integer(.default = NULL, .optional = FALSE)
+json_integer(.default = 0L, .optional = FALSE)
 
-json_number(.default = NULL, .optional = FALSE)
+json_number(.default = 0, .optional = FALSE)
 
-json_string(.default = NULL, .optional = FALSE)
+json_string(.default = "", .optional = FALSE)
 
-json_boolean(.default = NULL, .optional = FALSE)
+json_boolean(.default = FALSE, .optional = FALSE)
 
 json_array(items, .optional = FALSE)
 

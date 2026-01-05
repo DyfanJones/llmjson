@@ -68,7 +68,7 @@ json_object <- function(..., .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_integer <- function(.default = NULL, .optional = FALSE) {
+json_integer <- function(.default = 0L, .optional = FALSE) {
   schema <- list(
     type = "integer",
     optional = .optional
@@ -86,7 +86,7 @@ json_integer <- function(.default = NULL, .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_number <- function(.default = NULL, .optional = FALSE) {
+json_number <- function(.default = 0.0, .optional = FALSE) {
   schema <- list(
     type = "number",
     optional = .optional
@@ -104,7 +104,7 @@ json_number <- function(.default = NULL, .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_string <- function(.default = NULL, .optional = FALSE) {
+json_string <- function(.default = "", .optional = FALSE) {
   schema <- list(
     type = "string",
     optional = .optional
@@ -122,18 +122,16 @@ json_string <- function(.default = NULL, .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_boolean <- function(.default = NULL, .optional = FALSE) {
+json_boolean <- function(.default = FALSE, .optional = FALSE) {
   schema <- list(
     type = "boolean",
     optional = .optional
   )
 
-  if (!is.null(.default)) {
-    if (!is.logical(.default) || length(.default) != 1) {
-      stop(".default for json_boolean must be a single logical value")
-    }
-    schema$default <- .default
+  if (!is.logical(.default) || length(.default) != 1) {
+    stop(".default for json_boolean must be a single logical value")
   }
+  schema$default <- .default
 
   structure(schema, class = "LLMJsonSchema")
 }
