@@ -136,28 +136,26 @@ json_boolean <- function(.default = FALSE, .required = FALSE) {
 }
 
 #' @rdname schema
-#' @param values Character vector of allowed values (json_enum only)
+#' @param .values Character vector of allowed values (json_enum only)
 #' @export
-json_enum <- function(values, .default = NULL, .required = FALSE) {
-  if (!is.character(values) || length(values) == 0) {
-    stop("values must be a non-empty character vector")
+json_enum <- function(.values, .default = .values[1], .required = FALSE) {
+  if (!is.character(.values) || length(.values) == 0) {
+    stop(".values must be a non-empty character vector")
   }
 
   schema <- list(
     type = "enum",
-    values = values,
+    values = .values,
     required = .required
   )
 
-  if (!is.null(.default)) {
-    if (!is.character(.default) || length(.default) != 1) {
-      stop(".default for json_enum must be a single character value")
-    }
-    if (!.default %in% values) {
-      stop(".default must be one of the allowed values")
-    }
-    schema$default <- .default
+  if (!is.character(.default) || length(.default) != 1) {
+    stop(".default for json_enum must be a single character value")
   }
+  if (!.default %in% .values) {
+    stop(".default must be one of the allowed values")
+  }
+  schema$default <- .default
 
   structure(schema, class = "LLMJsonSchema")
 }
@@ -326,7 +324,12 @@ json_schema.LLMJsonSchema <- function(schema, ...) {
 
 #' @rdname json_schema
 #' @export
-json_schema.Type <- function(schema, ...) {
+json_schema.S7_object <- function(schema, ...) {
+  # Check if this is an ellmer Type object
+  if (!inherits(schema, "ellmer::Type")) {
+    stop("S7 object must be an ellmer Type for schema conversion")
+  }
+
   if (!requireNamespace("ellmer", quietly = TRUE)) {
     stop("Package 'ellmer' is required to convert ellmer types")
   }
@@ -341,39 +344,26 @@ json_schema.Type <- function(schema, ...) {
 #' Convert ellmer Type to LLMJsonSchema
 #' @noRd
 convert_ellmer_type <- function(type) {
-  if (!requireNamespace("ellmer", quietly = TRUE)) {
-    stop("Package 'ellmer' is required")
-  }
-
-  # Get the required field (ellmer uses 'required' property)
-  # In ellmer, required=TRUE means field must be present
-  # In llmjson, required=TRUE means field must be present
-  # So they align!
   required <- isTRUE(type@required)
 
-  # Handle different ellmer type classes
-  if (inherits(type, "TypeBasic")) {
-    convert_type_basic(type, required)
-  } else if (inherits(type, "TypeEnum")) {
-    convert_type_enum(type, required)
-  } else if (inherits(type, "TypeArray")) {
-    convert_type_array(type, required)
-  } else if (inherits(type, "TypeObject")) {
-    convert_type_object(type, required)
-  } else if (inherits(type, "TypeJsonSchema")) {
-    convert_type_json_schema(type, required)
-  } else if (inherits(type, "TypeIgnore")) {
-    NULL  # TypeIgnore means don't include this field
-  } else {
+  switch(
+    class(type)[1],
+    "ellmer::TypeBasic" = convert_type_basic(type, required),
+    "ellmer::TypeEnum" = convert_type_enum(type, required),
+    "ellmer::TypeArray" = convert_type_array(type, required),
+    "ellmer::TypeObject" = convert_type_object(type, required),
+    "ellmer::TypeJsonSchema" = convert_type_json_schema(type, required),
+    "ellmer::TypeIgnore" = NULL,
     stop("Unsupported ellmer type: ", paste(class(type), collapse = ", "))
-  }
+  )
 }
 
 #' @noRd
 convert_type_basic <- function(type, required) {
   type_name <- type@type
 
-  switch(type_name,
+  switch(
+    type_name,
     "boolean" = json_boolean(.required = required),
     "integer" = json_integer(.required = required),
     "number" = json_number(.required = required),
@@ -390,7 +380,7 @@ convert_type_enum <- function(type, required) {
     stop("TypeEnum must have character values")
   }
 
-  json_enum(values = values, .required = required)
+  json_enum(.values = values, .required = required)
 }
 
 #' @noRd

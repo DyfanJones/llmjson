@@ -141,14 +141,17 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
                         // Inline simple types
                         let mut type_str = format!("\"{}\"", get_type_name(field_schema));
 
-                        // Add enum values if this is an enum
+                        // Add enum values if this is an enum (part of type definition)
                         if let Schema::Enum { values, .. } = field_schema {
                             type_str.push_str(&format!(" {}", get_enum_values_string(values)));
                         }
 
+                        // Add required flag
                         if field_schema.is_required() {
                             type_str.push_str(" (required)");
                         }
+
+                        // Add default value
                         if let Some(default_str) = get_default_string(field_schema) {
                             type_str.push_str(&format!(" [default: {}]", default_str));
                         }
@@ -176,14 +179,17 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
             // Simple types at top level (shouldn't happen in normal usage)
             let mut type_str = format!("{}\"{}\"", padding, get_type_name(schema));
 
-            // Add enum values if this is an enum
+            // Add enum values if this is an enum (part of type definition)
             if let Schema::Enum { values, .. } = schema {
                 type_str.push_str(&format!(" {}", get_enum_values_string(values)));
             }
 
+            // Add required flag
             if schema.is_required() {
                 type_str.push_str(" (required)");
             }
+
+            // Add default value
             if let Some(default_str) = get_default_string(schema) {
                 type_str.push_str(&format!(" [default: {}]", default_str));
             }

@@ -3,14 +3,14 @@
 \name{json_schema}
 \alias{json_schema}
 \alias{json_schema.LLMJsonSchema}
-\alias{json_schema.Type}
+\alias{json_schema.S7_object}
 \title{Build a compiled schema for efficient reuse}
 \usage{
 json_schema(schema, ...)
 
 \method{json_schema}{LLMJsonSchema}(schema, ...)
 
-\method{json_schema}{Type}(schema, ...)
+\method{json_schema}{S7_object}(schema, ...)
 }
 \arguments{
 \item{schema}{A schema definition. Can be:

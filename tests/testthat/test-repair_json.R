@@ -234,7 +234,7 @@ test_that("schema with return_objects validates and converts types", {
 test_that("schema omits missing optional fields even with defaults (return_objects = TRUE)", {
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.default = 0L, .optional = TRUE)
+    age = json_integer(.default = 0L, .required = FALSE)
   )
 
   result <- repair_json_str(
@@ -250,7 +250,7 @@ test_that("schema omits missing optional fields even with defaults (return_objec
 test_that("schema omits missing optional fields even with defaults (return_objects = FALSE)", {
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.default = 0L, .optional = TRUE)
+    age = json_integer(.default = 0L, .required = FALSE)
   )
 
   result <- repair_json_str(
@@ -266,7 +266,7 @@ test_that("schema omits missing optional fields even with defaults (return_objec
 test_that("schema omits optional fields without defaults when missing", {
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.optional = TRUE)
+    age = json_integer(.required = FALSE)
   )
 
   result <- repair_json_str(
@@ -281,8 +281,8 @@ test_that("schema omits optional fields without defaults when missing", {
 
 test_that("schema adds null for missing required fields without defaults", {
   schema <- json_object(
-    name = json_string(),
-    age = json_integer()
+    name = json_string(.required = TRUE),
+    age = json_integer(.required = TRUE)
   )
 
   result <- repair_json_str(
@@ -309,8 +309,8 @@ test_that("schema adds null for missing required fields without defaults", {
 
 test_that("schema adds default for missing required fields with defaults", {
   schema <- json_object(
-    name = json_string(),
-    age = json_integer(.default = 25L)
+    name = json_string(.required = TRUE),
+    age = json_integer(.default = 25L, .required = TRUE)
   )
 
   result <- repair_json_str(
@@ -557,7 +557,7 @@ test_that("schema works with repair_json_file", {
 
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.default = 25L, .optional = TRUE)
+    age = json_integer(.default = 25L, .required = FALSE)
   )
 
   result <- repair_json_file(tmp_file, schema = schema, return_objects = TRUE)
@@ -572,7 +572,7 @@ test_that("schema works with repair_json_raw", {
 
   schema <- json_object(
     name = json_string(),
-    active = json_boolean(.default = TRUE, .optional = TRUE)
+    active = json_boolean(.default = TRUE, .required = FALSE)
   )
 
   result <- repair_json_raw(raw_data, schema = schema, return_objects = TRUE)
@@ -634,7 +634,7 @@ test_that("json_date handles numeric dates", {
 test_that("json_date handles optional dates", {
   schema <- json_object(
     name = json_string(),
-    birthday = json_date(.optional = TRUE)
+    birthday = json_date(.required = FALSE)
   )
 
   result <- repair_json_str(
@@ -650,7 +650,7 @@ test_that("json_date handles default dates", {
   default_date <- as.Date("2024-01-01")
   schema <- json_object(
     name = json_string(),
-    start_date = json_date(.default = default_date)
+    start_date = json_date(.default = default_date, .required = TRUE)
   )
 
   result <- repair_json_str(
@@ -773,7 +773,7 @@ test_that("json_timestamp handles timezone", {
 test_that("json_timestamp handles optional timestamps", {
   schema <- json_object(
     name = json_string(),
-    created_at = json_timestamp(.optional = TRUE)
+    created_at = json_timestamp(.required = FALSE)
   )
 
   result <- repair_json_str(
@@ -789,7 +789,7 @@ test_that("json_timestamp handles default timestamps", {
   default_time <- as.POSIXct("2024-01-01 00:00:00", tz = "UTC")
   schema <- json_object(
     name = json_string(),
-    created_at = json_timestamp(.default = default_time)
+    created_at = json_timestamp(.default = default_time, .required = TRUE)
   )
 
   result <- repair_json_str(
@@ -934,19 +934,19 @@ test_that("repair_json_conn works with return_objects = TRUE", {
 test_that("repair_json_conn works with schema", {
   tmp_file <- tempfile(fileext = ".json")
   writeLines('{"name": "Bob"}', tmp_file)
-  
+
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.default = 25L)
+    age = json_integer(.default = 25L, .required = TRUE)
   )
-  
+
   conn <- file(tmp_file, "r")
   result <- repair_json_conn(conn, schema = schema, return_objects = TRUE)
   close(conn)
-  
+
   expect_equal(result$name, "Bob")
   expect_equal(result$age, 25)
-  
+
   unlink(tmp_file)
 })
 

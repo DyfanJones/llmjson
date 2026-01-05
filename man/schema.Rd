@@ -24,7 +24,7 @@ json_string(.default = "", .required = FALSE)
 
 json_boolean(.default = FALSE, .required = FALSE)
 
-json_enum(values, .default = NULL, .required = FALSE)
+json_enum(.values, .default = .values[1], .required = FALSE)
 
 json_array(items, .required = FALSE)
 
@@ -47,7 +47,7 @@ json_timestamp(
 \item{.default}{Default value to use when field is missing. Only applies to
 required fields (.required = TRUE)}
 
-\item{values}{Character vector of allowed values (json_enum only)}
+\item{.values}{Character vector of allowed values (json_enum only)}
 
 \item{items}{Schema definition for array elements (json_array only)}
 
