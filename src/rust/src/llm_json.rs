@@ -6,7 +6,7 @@
 //! ## Attribution
 //!
 //! This code is vendored from the llm_json Rust crate v1.0.2
-//! (https://github.com/ribelo/llm_json), originally written by Ribelo.
+//! (https://github.com/oramasearch/llm_json), originally written by Ribelo.
 //!
 //! The llm_json crate is a porting of the Python library json_repair
 //! (https://github.com/mangiucugna/json_repair), written by Stefano Baccianella

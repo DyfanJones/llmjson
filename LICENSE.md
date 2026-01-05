@@ -29,7 +29,7 @@ This package includes code from the following projects:
 ### llm_json (src/rust/src/llm_json.rs)
 
 Original work Copyright (c) Ribelo
-Source: https://github.com/ribelo/llm_json (v1.0.2)
+Source: https://github.com/oramasearch/llm_json (v1.0.2)
 License: MIT
 
 This code has been modified from the original to include bug fixes for array
