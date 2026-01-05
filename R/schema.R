@@ -354,6 +354,6 @@ json_schema <- function(schema) {
 
 #' @export
 print.LLMJsonSchemaBuilt <- function(x, ...) {
-  x$print()
+  cat(x$format(), "\n", sep = "")
   invisible(x)
 }

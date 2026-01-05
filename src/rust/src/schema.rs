@@ -103,13 +103,7 @@ impl LLMJsonSchemaBuilt {
         }
     }
 
-    /// Print method for R console
-    pub fn print(&self) {
-        print_schema_helper(&self.schema, 0);
-        rprintln!("");
-    }
-
-    /// Format schema as string (for benchmarking)
+    /// Format schema as string for display
     pub fn format(&self) -> String {
         format_schema_helper(&self.schema, 0)
     }
@@ -122,13 +116,7 @@ impl LLMJsonSchemaBuilt {
     }
 }
 
-/// Helper function to recursively print schema structure in JSON-like format
-fn print_schema_helper(schema: &Schema, indent: usize) {
-    let result = format_schema_helper(schema, indent);
-    rprint!("{}", result);
-}
-
-/// Format schema as string (used for both printing and benchmarking)
+/// Helper function to recursively format schema structure as a string in JSON-like format
 fn format_schema_helper(schema: &Schema, indent: usize) -> String {
     let padding = "  ".repeat(indent);
 

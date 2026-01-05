@@ -67,8 +67,6 @@ LLMJsonSchemaBuilt <- new.env(parent = emptyenv())
 
 LLMJsonSchemaBuilt$new <- function(robj) .Call(wrap__LLMJsonSchemaBuilt__new, robj)
 
-LLMJsonSchemaBuilt$print <- function() invisible(.Call(wrap__LLMJsonSchemaBuilt__print, self))
-
 LLMJsonSchemaBuilt$format <- function() .Call(wrap__LLMJsonSchemaBuilt__format, self)
 
 #' @export
