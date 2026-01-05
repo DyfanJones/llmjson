@@ -201,24 +201,24 @@ test_that("repair_json_raw returns R objects when return_objects = TRUE", {
 })
 
 # Tests for schema functionality
-test_that("s_map creates a valid schema", {
-  schema <- s_map(name = s_string(), age = s_integer())
-  expect_s3_class(schema, "llmjson_schema")
+test_that("json_object creates a valid schema", {
+  schema <- json_object(name = json_string(), age = json_integer())
+  expect_s3_class(schema, "LLMJsonSchema")
   expect_equal(schema$type, "map")
   expect_length(schema$fields, 2)
 })
 
-test_that("s_integer, s_double, s_string, s_logical create valid schemas", {
-  expect_s3_class(s_integer(), "llmjson_schema")
-  expect_s3_class(s_double(), "llmjson_schema")
-  expect_s3_class(s_string(), "llmjson_schema")
-  expect_s3_class(s_logical(), "llmjson_schema")
+test_that("json_integer, json_number, json_string, json_boolean create valid schemas", {
+  expect_s3_class(json_integer(), "LLMJsonSchema")
+  expect_s3_class(json_number(), "LLMJsonSchema")
+  expect_s3_class(json_string(), "LLMJsonSchema")
+  expect_s3_class(json_boolean(), "LLMJsonSchema")
 })
 
 test_that("schema with return_objects validates and converts types", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer()
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer()
   )
 
   result <- repair_json_str(
@@ -232,9 +232,9 @@ test_that("schema with return_objects validates and converts types", {
 })
 
 test_that("schema omits missing optional fields even with defaults (return_objects = TRUE)", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer(.optional = TRUE, .default = 0L)
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer(.optional = TRUE, .default = 0L)
   )
 
   result <- repair_json_str(
@@ -248,9 +248,9 @@ test_that("schema omits missing optional fields even with defaults (return_objec
 })
 
 test_that("schema omits missing optional fields even with defaults (return_objects = FALSE)", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer(.optional = TRUE, .default = 0L)
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer(.optional = TRUE, .default = 0L)
   )
 
   result <- repair_json_str(
@@ -264,9 +264,9 @@ test_that("schema omits missing optional fields even with defaults (return_objec
 })
 
 test_that("schema omits optional fields without defaults when missing", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer(.optional = TRUE)
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer(.optional = TRUE)
   )
 
   result <- repair_json_str(
@@ -280,9 +280,9 @@ test_that("schema omits optional fields without defaults when missing", {
 })
 
 test_that("schema adds null for missing required fields without defaults", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer()
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer()
   )
 
   result <- repair_json_str(
@@ -306,9 +306,9 @@ test_that("schema adds null for missing required fields without defaults", {
 })
 
 test_that("schema adds default for missing required fields with defaults", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer(.default = 25L)
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer(.default = 25L)
   )
 
   result <- repair_json_str(
@@ -332,9 +332,9 @@ test_that("schema adds default for missing required fields with defaults", {
 })
 
 test_that("schema coerces number to string", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_string()
+  schema <- json_object(
+    name = json_string(),
+    age = json_string()
   )
 
   result <- repair_json_str(
@@ -348,9 +348,9 @@ test_that("schema coerces number to string", {
 })
 
 test_that("schema coerces string to integer", {
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer()
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer()
   )
 
   result <- repair_json_str(
@@ -364,7 +364,7 @@ test_that("schema coerces string to integer", {
 })
 
 test_that("schema coerces boolean to integer", {
-  schema <- s_map(active = s_integer())
+  schema <- json_object(active = json_integer())
 
   result <- repair_json_str(
     '{"active": true}',
@@ -383,7 +383,7 @@ test_that("schema coerces boolean to integer", {
 
 test_that("schema coerces types with return_objects = FALSE (JSON output)", {
   # Integer to String
-  schema <- s_map(var1 = s_string())
+  schema <- json_object(var1 = json_string())
   result <- repair_json_str(
     '{var1: 2}',
     schema = schema,
@@ -392,7 +392,7 @@ test_that("schema coerces types with return_objects = FALSE (JSON output)", {
   expect_equal(result, "{\"var1\":\"2\"}")
 
   # String to Integer
-  schema <- s_map(var1 = s_integer())
+  schema <- json_object(var1 = json_integer())
   result <- repair_json_str(
     '{var1: "42"}',
     schema = schema,
@@ -401,7 +401,7 @@ test_that("schema coerces types with return_objects = FALSE (JSON output)", {
   expect_equal(result, "{\"var1\":42}")
 
   # Boolean to Integer
-  schema <- s_map(active = s_integer())
+  schema <- json_object(active = json_integer())
   result <- repair_json_str(
     '{active: true}',
     schema = schema,
@@ -410,7 +410,7 @@ test_that("schema coerces types with return_objects = FALSE (JSON output)", {
   expect_equal(result, "{\"active\":1}")
 
   # Integer to Double
-  schema <- s_map(value = s_double())
+  schema <- json_object(value = json_number())
   result <- repair_json_str(
     '{value: 10}',
     schema = schema,
@@ -419,7 +419,7 @@ test_that("schema coerces types with return_objects = FALSE (JSON output)", {
   expect_equal(result, "{\"value\":10.0}")
 
   # String to Boolean
-  schema <- s_map(flag = s_logical())
+  schema <- json_object(flag = json_boolean())
   result <- repair_json_str(
     '{flag: "true"}',
     schema = schema,
@@ -428,9 +428,9 @@ test_that("schema coerces types with return_objects = FALSE (JSON output)", {
   expect_equal(result, "{\"flag\":true}")
 
   # Number to String (multiple fields)
-  schema <- s_map(
-    name = s_string(),
-    age = s_string()
+  schema <- json_object(
+    name = json_string(),
+    age = json_string()
   )
   result <- repair_json_str(
     '{"name": "Alice", "age": 30}',
@@ -442,11 +442,11 @@ test_that("schema coerces types with return_objects = FALSE (JSON output)", {
 
 test_that("schema coerces types in nested structures with return_objects = FALSE", {
   # Nested map with coercion
-  schema <- s_map(
-    name = s_string(),
-    details = s_map(
-      age = s_string(), # Coerce number to string
-      score = s_integer() # Coerce string to integer
+  schema <- json_object(
+    name = json_string(),
+    details = json_object(
+      age = json_string(), # Coerce number to string
+      score = json_integer() # Coerce string to integer
     )
   )
   result <- repair_json_str(
@@ -460,8 +460,8 @@ test_that("schema coerces types in nested structures with return_objects = FALSE
   )
 
   # Array with coercion
-  schema <- s_map(
-    values = s_array(s_string()) # Coerce numbers to strings
+  schema <- json_object(
+    values = json_array(json_string()) # Coerce numbers to strings
   )
   result <- repair_json_str(
     '{"values": [1, 2, 3]}',
@@ -472,10 +472,10 @@ test_that("schema coerces types in nested structures with return_objects = FALSE
 })
 
 test_that("schema coercion works with built schemas", {
-  # Test with build_schema for performance
-  built_schema <- build_schema(s_map(
-    var1 = s_string(),
-    var2 = s_integer()
+  # Test with json_schema for performance
+  built_schema <- json_schema(json_object(
+    var1 = json_string(),
+    var2 = json_integer()
   ))
 
   result <- repair_json_str(
@@ -487,9 +487,9 @@ test_that("schema coercion works with built schemas", {
 })
 
 test_that("schema handles arrays", {
-  schema <- s_map(
-    name = s_string(),
-    scores = s_array(s_integer())
+  schema <- json_object(
+    name = json_string(),
+    scores = json_array(json_integer())
   )
 
   result <- repair_json_str(
@@ -507,11 +507,11 @@ test_that("schema handles arrays", {
 })
 
 test_that("schema handles nested maps", {
-  schema <- s_map(
-    name = s_string(),
-    address = s_map(
-      city = s_string(),
-      zip = s_integer()
+  schema <- json_object(
+    name = json_string(),
+    address = json_object(
+      city = json_string(),
+      zip = json_integer()
     )
   )
 
@@ -529,10 +529,10 @@ test_that("schema handles nested maps", {
   )
 })
 
-test_that("schema with s_any accepts any type", {
-  schema <- s_map(
-    name = s_string(),
-    metadata = s_any()
+test_that("schema with json_any accepts any type", {
+  schema <- json_object(
+    name = json_string(),
+    metadata = json_any()
   )
 
   result <- repair_json_str(
@@ -553,9 +553,9 @@ test_that("schema works with repair_json_file", {
   tmp_file <- tempfile(fileext = ".json")
   writeLines('{"name": "Alice"}', tmp_file)
 
-  schema <- s_map(
-    name = s_string(),
-    age = s_integer(.optional = TRUE, .default = 25L)
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer(.optional = TRUE, .default = 25L)
   )
 
   result <- repair_json_file(tmp_file, schema = schema, return_objects = TRUE)
@@ -568,9 +568,9 @@ test_that("schema works with repair_json_file", {
 test_that("schema works with repair_json_raw", {
   raw_data <- charToRaw('{"name": "Bob"}')
 
-  schema <- s_map(
-    name = s_string(),
-    active = s_logical(.optional = TRUE, .default = TRUE)
+  schema <- json_object(
+    name = json_string(),
+    active = json_boolean(.optional = TRUE, .default = TRUE)
   )
 
   result <- repair_json_raw(raw_data, schema = schema, return_objects = TRUE)
@@ -579,14 +579,14 @@ test_that("schema works with repair_json_raw", {
 })
 
 # Tests for Date schema
-test_that("s_date creates valid schema", {
-  schema <- s_date()
-  expect_s3_class(schema, "llmjson_schema")
+test_that("json_date creates valid schema", {
+  schema <- json_date()
+  expect_s3_class(schema, "LLMJsonSchema")
   expect_equal(schema$type, "date")
 })
 
-test_that("s_date parses ISO8601 date strings", {
-  schema <- s_map(event_date = s_date())
+test_that("json_date parses ISO8601 date strings", {
+  schema <- json_object(event_date = json_date())
 
   result <- repair_json_str(
     '{"event_date": "2024-01-15"}',
@@ -596,8 +596,8 @@ test_that("s_date parses ISO8601 date strings", {
   expect_equal(result$event_date, as.Date("2024-01-15"))
 })
 
-test_that("s_date parses custom format date strings", {
-  schema <- s_map(event_date = s_date(.format = "%m/%d/%Y"))
+test_that("json_date parses custom format date strings", {
+  schema <- json_object(event_date = json_date(.format = "%m/%d/%Y"))
 
   result <- repair_json_str(
     '{"event_date": "01/15/2024"}',
@@ -607,8 +607,8 @@ test_that("s_date parses custom format date strings", {
   expect_equal(result$event_date, as.Date("2024-01-15"))
 })
 
-test_that("s_date parses named format date strings", {
-  schema <- s_map(event_date = s_date(.format = "us_date"))
+test_that("json_date parses named format date strings", {
+  schema <- json_object(event_date = json_date(.format = "us_date"))
 
   result <- repair_json_str(
     '{"event_date": "01/15/2024"}',
@@ -618,8 +618,8 @@ test_that("s_date parses named format date strings", {
   expect_equal(result$event_date, as.Date("2024-01-15"))
 })
 
-test_that("s_date handles numeric dates", {
-  schema <- s_map(event_date = s_date())
+test_that("json_date handles numeric dates", {
+  schema <- json_object(event_date = json_date())
 
   result <- repair_json_str(
     '{"event_date": 19737}',
@@ -629,10 +629,10 @@ test_that("s_date handles numeric dates", {
   expect_equal(result$event_date, as.Date(19737))
 })
 
-test_that("s_date handles optional dates", {
-  schema <- s_map(
-    name = s_string(),
-    birthday = s_date(.optional = TRUE)
+test_that("json_date handles optional dates", {
+  schema <- json_object(
+    name = json_string(),
+    birthday = json_date(.optional = TRUE)
   )
 
   result <- repair_json_str(
@@ -644,11 +644,11 @@ test_that("s_date handles optional dates", {
   expect_false("birthday" %in% names(result))
 })
 
-test_that("s_date handles default dates", {
+test_that("json_date handles default dates", {
   default_date <- as.Date("2024-01-01")
-  schema <- s_map(
-    name = s_string(),
-    start_date = s_date(.default = default_date)
+  schema <- json_object(
+    name = json_string(),
+    start_date = json_date(.default = default_date)
   )
 
   result <- repair_json_str(
@@ -661,14 +661,14 @@ test_that("s_date handles default dates", {
 })
 
 # Tests for POSIXct schema
-test_that("s_posixct creates valid schema", {
-  schema <- s_posixct()
-  expect_s3_class(schema, "llmjson_schema")
+test_that("json_timestamp creates valid schema", {
+  schema <- json_timestamp()
+  expect_s3_class(schema, "LLMJsonSchema")
   expect_equal(schema$type, "posixct")
 })
 
-test_that("s_posixct parses ISO8601 datetime strings", {
-  schema <- s_map(timestamp = s_posixct())
+test_that("json_timestamp parses ISO8601 datetime strings", {
+  schema <- json_object(timestamp = json_timestamp())
 
   result <- repair_json_str(
     '{"timestamp": "2024-01-15T10:30:45"}',
@@ -682,8 +682,8 @@ test_that("s_posixct parses ISO8601 datetime strings", {
   )
 })
 
-test_that("s_posixct parses ISO8601Z datetime strings", {
-  schema <- s_map(timestamp = s_posixct(.format = "iso8601z"))
+test_that("json_timestamp parses ISO8601Z datetime strings", {
+  schema <- json_object(timestamp = json_timestamp(.format = "iso8601z"))
 
   result <- repair_json_str(
     '{"timestamp": "2024-01-15T10:30:45Z"}',
@@ -696,8 +696,8 @@ test_that("s_posixct parses ISO8601Z datetime strings", {
   )
 })
 
-test_that("s_posixct parses Unix timestamps from strings", {
-  schema <- s_map(timestamp = s_posixct(.format = "unix"))
+test_that("json_timestamp parses Unix timestamps from strings", {
+  schema <- json_object(timestamp = json_timestamp(.format = "unix"))
 
   result <- repair_json_str(
     '{"timestamp": "1705318245"}',
@@ -710,8 +710,8 @@ test_that("s_posixct parses Unix timestamps from strings", {
   )
 })
 
-test_that("s_posixct parses Unix timestamps from numbers", {
-  schema <- s_map(timestamp = s_posixct())
+test_that("json_timestamp parses Unix timestamps from numbers", {
+  schema <- json_object(timestamp = json_timestamp())
 
   result <- repair_json_str(
     '{"timestamp": 1705318245}',
@@ -724,8 +724,8 @@ test_that("s_posixct parses Unix timestamps from numbers", {
   )
 })
 
-test_that("s_posixct parses millisecond timestamps", {
-  schema <- s_map(timestamp = s_posixct(.format = "unix_ms"))
+test_that("json_timestamp parses millisecond timestamps", {
+  schema <- json_object(timestamp = json_timestamp(.format = "unix_ms"))
 
   result <- repair_json_str(
     '{"timestamp": "1705318245000"}',
@@ -738,8 +738,8 @@ test_that("s_posixct parses millisecond timestamps", {
   )
 })
 
-test_that("s_posixct handles custom format", {
-  schema <- s_map(timestamp = s_posixct(.format = "%m/%d/%Y %H:%M:%S"))
+test_that("json_timestamp handles custom format", {
+  schema <- json_object(timestamp = json_timestamp(.format = "%m/%d/%Y %H:%M:%S"))
 
   result <- repair_json_str(
     '{"timestamp": "01/15/2024 10:30:45"}',
@@ -752,8 +752,8 @@ test_that("s_posixct handles custom format", {
   )
 })
 
-test_that("s_posixct handles timezone", {
-  schema <- s_map(timestamp = s_posixct(.tz = "America/New_York"))
+test_that("json_timestamp handles timezone", {
+  schema <- json_object(timestamp = json_timestamp(.tz = "America/New_York"))
 
   result <- repair_json_str(
     '{"timestamp": "2024-01-15T10:30:45"}',
@@ -766,10 +766,10 @@ test_that("s_posixct handles timezone", {
   )
 })
 
-test_that("s_posixct handles optional timestamps", {
-  schema <- s_map(
-    name = s_string(),
-    created_at = s_posixct(.optional = TRUE)
+test_that("json_timestamp handles optional timestamps", {
+  schema <- json_object(
+    name = json_string(),
+    created_at = json_timestamp(.optional = TRUE)
   )
 
   result <- repair_json_str(
@@ -781,11 +781,11 @@ test_that("s_posixct handles optional timestamps", {
   expect_false("created_at" %in% names(result))
 })
 
-test_that("s_posixct handles default timestamps", {
+test_that("json_timestamp handles default timestamps", {
   default_time <- as.POSIXct("2024-01-01 00:00:00", tz = "UTC")
-  schema <- s_map(
-    name = s_string(),
-    created_at = s_posixct(.default = default_time)
+  schema <- json_object(
+    name = json_string(),
+    created_at = json_timestamp(.default = default_time)
   )
 
   result <- repair_json_str(
@@ -798,11 +798,11 @@ test_that("s_posixct handles default timestamps", {
   expect_equal(as.numeric(result$created_at), as.numeric(default_time))
 })
 
-test_that("s_date and s_posixct work together in schema", {
-  schema <- s_map(
-    name = s_string(),
-    birthday = s_date(),
-    last_login = s_posixct()
+test_that("json_date and json_timestamp work together in schema", {
+  schema <- json_object(
+    name = json_string(),
+    birthday = json_date(),
+    last_login = json_timestamp()
   )
 
   result <- repair_json_str(

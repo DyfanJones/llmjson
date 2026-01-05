@@ -1,6 +1,6 @@
 use extendr_api::prelude::*;
-use serde_json::Value;
 use indexmap::IndexMap;
+use serde_json::Value;
 
 // Use std::result::Result explicitly to avoid conflict with extendr's Result
 type StdResult<T, E> = std::result::Result<T, E>;
@@ -38,12 +38,18 @@ fn parse_date_string(date_str: &str, format: &str) -> StdResult<f64, String> {
         Ok(robj) => {
             if let Some(date_num) = robj.as_real() {
                 if date_num.is_nan() {
-                    Err(format!("Failed to parse date '{}' with format '{}'", date_str, format))
+                    Err(format!(
+                        "Failed to parse date '{}' with format '{}'",
+                        date_str, format
+                    ))
                 } else {
                     Ok(date_num)
                 }
             } else {
-                Err(format!("Failed to parse date '{}' with format '{}'", date_str, format))
+                Err(format!(
+                    "Failed to parse date '{}' with format '{}'",
+                    date_str, format
+                ))
             }
         }
         Err(e) => Err(format!("Error parsing date: {:?}", e)),
@@ -59,12 +65,18 @@ fn parse_datetime_string(datetime_str: &str, format: &str, tz: &str) -> StdResul
         Ok(robj) => {
             if let Some(datetime_num) = robj.as_real() {
                 if datetime_num.is_nan() {
-                    Err(format!("Failed to parse datetime '{}' with format '{}'", datetime_str, format))
+                    Err(format!(
+                        "Failed to parse datetime '{}' with format '{}'",
+                        datetime_str, format
+                    ))
                 } else {
                     Ok(datetime_num)
                 }
             } else {
-                Err(format!("Failed to parse datetime '{}' with format '{}'", datetime_str, format))
+                Err(format!(
+                    "Failed to parse datetime '{}' with format '{}'",
+                    datetime_str, format
+                ))
             }
         }
         Err(e) => Err(format!("Error parsing datetime: {:?}", e)),
@@ -75,16 +87,16 @@ fn parse_datetime_string(datetime_str: &str, format: &str, tz: &str) -> StdResul
 /// This allows us to build a schema once and reuse it many times
 #[derive(Debug, Clone, PartialEq)]
 #[extendr]
-pub struct BuiltSchema {
+pub struct LLMJsonSchemaBuilt {
     schema: Schema,
 }
 
 #[extendr]
-impl BuiltSchema {
+impl LLMJsonSchemaBuilt {
     /// Create a new built schema from an R schema definition
     pub fn new(robj: Robj) -> Self {
         match Schema::from_robj(&robj) {
-            Ok(schema) => BuiltSchema { schema },
+            Ok(schema) => LLMJsonSchemaBuilt { schema },
             Err(e) => {
                 throw_r_error(&format!("Invalid schema: {}", e));
             }
@@ -103,7 +115,7 @@ impl BuiltSchema {
     }
 }
 
-impl BuiltSchema {
+impl LLMJsonSchemaBuilt {
     /// Get a reference to the internal Schema
     pub fn get_schema(&self) -> &Schema {
         &self.schema
@@ -121,7 +133,10 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
     let padding = "  ".repeat(indent);
 
     match schema {
-        Schema::Map { fields, optional: _ } => {
+        Schema::Map {
+            fields,
+            optional: _,
+        } => {
             let mut result = String::new();
 
             let field_names: Vec<&String> = fields.keys().collect();
@@ -226,14 +241,14 @@ pub enum Schema {
     },
     Date {
         optional: bool,
-        default: Option<String>,  // ISO format date string
-        format: Option<Vec<String>>,  // Format string(s) for parsing
+        default: Option<String>,     // ISO format date string
+        format: Option<Vec<String>>, // Format string(s) for parsing
     },
     Posixct {
         optional: bool,
-        default: Option<f64>,  // Unix timestamp
-        format: Option<Vec<String>>,  // Format string(s) for parsing
-        tz: String,  // Timezone (default "UTC")
+        default: Option<f64>,        // Unix timestamp
+        format: Option<Vec<String>>, // Format string(s) for parsing
+        tz: String,                  // Timezone (default "UTC")
     },
     Array {
         items: Box<Schema>,
@@ -313,18 +328,23 @@ impl Schema {
                     .and_then(|(_, robj)| robj.as_str())
                     .map(|s| s.to_string());
 
-                let format = list
-                    .iter()
-                    .find(|(name, _)| *name == "format")
-                    .and_then(|(_, robj)| {
-                        if robj.is_null() {
-                            None
-                        } else {
-                            robj.as_str_vector().map(|v| v.iter().map(|s| s.to_string()).collect())
-                        }
-                    });
+                let format =
+                    list.iter()
+                        .find(|(name, _)| *name == "format")
+                        .and_then(|(_, robj)| {
+                            if robj.is_null() {
+                                None
+                            } else {
+                                robj.as_str_vector()
+                                    .map(|v| v.iter().map(|s| s.to_string()).collect())
+                            }
+                        });
 
-                Ok(Schema::Date { optional, default, format })
+                Ok(Schema::Date {
+                    optional,
+                    default,
+                    format,
+                })
             }
             "posixct" => {
                 let default = list
@@ -332,16 +352,17 @@ impl Schema {
                     .find(|(name, _)| *name == "default")
                     .and_then(|(_, robj)| robj.as_real());
 
-                let format = list
-                    .iter()
-                    .find(|(name, _)| *name == "format")
-                    .and_then(|(_, robj)| {
-                        if robj.is_null() {
-                            None
-                        } else {
-                            robj.as_str_vector().map(|v| v.iter().map(|s| s.to_string()).collect())
-                        }
-                    });
+                let format =
+                    list.iter()
+                        .find(|(name, _)| *name == "format")
+                        .and_then(|(_, robj)| {
+                            if robj.is_null() {
+                                None
+                            } else {
+                                robj.as_str_vector()
+                                    .map(|v| v.iter().map(|s| s.to_string()).collect())
+                            }
+                        });
 
                 let tz = list
                     .iter()
@@ -350,7 +371,12 @@ impl Schema {
                     .unwrap_or("UTC")
                     .to_string();
 
-                Ok(Schema::Posixct { optional, default, format, tz })
+                Ok(Schema::Posixct {
+                    optional,
+                    default,
+                    format,
+                    tz,
+                })
             }
             "any" => Ok(Schema::Any { optional }),
             "array" => {
@@ -512,15 +538,15 @@ impl Schema {
                     let mut last_error = String::new();
                     for fmt_str in formats_to_try {
                         // Resolve named format or use as-is
-                        let actual_format = get_date_format(&fmt_str)
-                            .unwrap_or(&fmt_str)
-                            .to_string();
+                        let actual_format =
+                            get_date_format(&fmt_str).unwrap_or(&fmt_str).to_string();
 
                         match parse_date_string(s, &actual_format) {
                             Ok(date_num) => {
                                 // Convert numeric date to R Date object
                                 let result = R!("structure({{date_num}}, class='Date')");
-                                return result.map_err(|e| format!("Error creating Date object: {:?}", e));
+                                return result
+                                    .map_err(|e| format!("Error creating Date object: {:?}", e));
                             }
                             Err(e) => {
                                 last_error = e;
@@ -560,14 +586,18 @@ impl Schema {
                             // Try to parse as Unix timestamp from string
                             if let Ok(timestamp) = s.parse::<f64>() {
                                 let result = R!("structure({{timestamp}}, class=c('POSIXct', 'POSIXt'), tzone={{tz}})");
-                                return result.map_err(|e| format!("Error creating POSIXct object: {:?}", e));
+                                return result.map_err(|e| {
+                                    format!("Error creating POSIXct object: {:?}", e)
+                                });
                             }
                         } else if fmt_str == "unix_ms" {
                             // Try to parse as millisecond timestamp from string
                             if let Ok(timestamp_ms) = s.parse::<f64>() {
                                 let timestamp = timestamp_ms / 1000.0;
                                 let result = R!("structure({{timestamp}}, class=c('POSIXct', 'POSIXt'), tzone={{tz}})");
-                                return result.map_err(|e| format!("Error creating POSIXct object: {:?}", e));
+                                return result.map_err(|e| {
+                                    format!("Error creating POSIXct object: {:?}", e)
+                                });
                             }
                         } else {
                             // Resolve named format or use as-is
@@ -578,7 +608,9 @@ impl Schema {
                             match parse_datetime_string(s, &actual_format, tz) {
                                 Ok(datetime_num) => {
                                     let result = R!("structure({{datetime_num}}, class=c('POSIXct', 'POSIXt'), tzone={{tz}})");
-                                    return result.map_err(|e| format!("Error creating POSIXct object: {:?}", e));
+                                    return result.map_err(|e| {
+                                        format!("Error creating POSIXct object: {:?}", e)
+                                    });
                                 }
                                 Err(e) => {
                                     last_error = e;
@@ -587,7 +619,10 @@ impl Schema {
                             }
                         }
                     }
-                    Err(format!("Could not parse '{}' as datetime: {}", s, last_error))
+                    Err(format!(
+                        "Could not parse '{}' as datetime: {}",
+                        s, last_error
+                    ))
                 } else if let Some(n) = value.as_f64() {
                     // Handle numeric timestamp (assume Unix epoch seconds)
                     let result = R!("structure({{n}}, class=c('POSIXct', 'POSIXt'), tzone={{tz}})");
@@ -595,7 +630,8 @@ impl Schema {
                 } else if let Some(n) = value.as_i64() {
                     // Handle integer timestamp
                     let n_f64 = n as f64;
-                    let result = R!("structure({{n_f64}}, class=c('POSIXct', 'POSIXt'), tzone={{tz}})");
+                    let result =
+                        R!("structure({{n_f64}}, class=c('POSIXct', 'POSIXt'), tzone={{tz}})");
                     result.map_err(|e| format!("Error creating POSIXct object: {:?}", e))
                 } else {
                     Err(format!("Cannot convert {:?} to POSIXct", value))
@@ -895,12 +931,10 @@ impl Schema {
 
         // Try coercion from other types
         match value {
-            Value::String(s) => {
-                match s.parse::<i32>() {
-                    Ok(i) => Ok(Value::Number(i.into())),
-                    Err(_) => Err(format!("Cannot parse '{}' as integer", s)),
-                }
-            }
+            Value::String(s) => match s.parse::<i32>() {
+                Ok(i) => Ok(Value::Number(i.into())),
+                Err(_) => Err(format!("Cannot parse '{}' as integer", s)),
+            },
             Value::Bool(b) => Ok(Value::Number(if *b { 1 } else { 0 }.into())),
             _ => Err(format!("Cannot convert {:?} to integer", value)),
         }
@@ -925,14 +959,12 @@ impl Schema {
 
         // Try coercion from other types
         match value {
-            Value::String(s) => {
-                match s.parse::<f64>() {
-                    Ok(d) => serde_json::Number::from_f64(d)
-                        .map(Value::Number)
-                        .ok_or_else(|| format!("Cannot parse '{}' as number", s)),
-                    Err(_) => Err(format!("Cannot parse '{}' as number", s)),
-                }
-            }
+            Value::String(s) => match s.parse::<f64>() {
+                Ok(d) => serde_json::Number::from_f64(d)
+                    .map(Value::Number)
+                    .ok_or_else(|| format!("Cannot parse '{}' as number", s)),
+                Err(_) => Err(format!("Cannot parse '{}' as number", s)),
+            },
             Value::Bool(b) => serde_json::Number::from_f64(if *b { 1.0 } else { 0.0 })
                 .map(Value::Number)
                 .ok_or_else(|| "Invalid floating point number".to_string()),
@@ -1005,8 +1037,8 @@ impl Schema {
     }
 }
 
-// Generate metadata for the BuiltSchema type
+// Generate metadata for the LLMJsonSchemaBuilt type
 extendr_module! {
     mod schema;
-    impl BuiltSchema;
+    impl LLMJsonSchemaBuilt;
 }

@@ -8,67 +8,29 @@
 #' @rdname schema_builders
 NULL
 
-#' Build a compiled schema for efficient reuse
-#'
-#' This function compiles a schema definition into an efficient internal
-#' representation that can be reused across multiple JSON repair operations.
-#' This dramatically improves performance when repairing many JSON strings
-#' with the same schema, as the schema only needs to be parsed once.
-#'
-#' @param schema A schema definition created with s_map(), s_integer(), etc.
-#' @return A built schema object (external pointer) that can be passed to
-#'   repair_json_str(), repair_json_file(), or repair_json_raw()
-#' @export
-#' @examples
-#' # Create a schema
-#' schema <- s_map(
-#'   name = s_string(),
-#'   age = s_integer(),
-#'   email = s_string()
-#' )
-#'
-#' # Build it once
-#' built_schema <- build_schema(schema)
-#'
-#' # Reuse many times - much faster than rebuilding each time!
-#' repair_json_str('{"name": "Alice", "age": 30}', built_schema)
-#' repair_json_str('{"name": "Bob", "age": 25}', built_schema)
-build_schema <- function(schema) {
-  if (!inherits(schema, "llmjson_schema")) {
-    stop("schema must be a schema definition created with s_* functions")
-  }
-  BuiltSchema$new(schema)
-}
-
-#' @export
-print.BuiltSchema <- function(x, ...) {
-  x$print()
-  invisible(x)
-}
-
 #' Create a schema for a JSON object/map
 #'
 #' @param ... Named arguments defining the schema for each field.
-#'   Each argument should be a schema builder (s_integer, s_double, s_string, etc.)
+#'   Each argument should be a schema builder (json_integer, json_number, json_string, etc.)
 #' @param .optional Logical; if TRUE, this object can be null
 #' @return A schema definition object
 #' @export
 #' @examples
 #' # Define a schema for a user object
-#' schema <- s_map(
-#'   name = s_string(),
-#'   age = s_integer(),
-#'   email = s_string()
+#' schema <- json_object(
+#'   name = json_string(),
+#'   age = json_integer(),
+#'   email = json_string()
 #' )
-s_map <- function(..., .optional = FALSE) {
+json_object <- function(..., .optional = FALSE) {
   fields <- list(...)
 
   if (length(fields) == 0) {
-    stop("s_map requires at least one field")
+    stop("json_object requires at least one field")
   }
 
   if (is.null(names(fields)) || any(names(fields) == "")) {
-    stop("All fields in s_map must be named")
+    stop("All fields in json_object must be named")
   }
 
   structure(
@@ -77,7 +39,7 @@ s_map <- function(..., .optional = FALSE) {
       fields = fields,
       optional = .optional
     ),
-    class = "llmjson_schema"
+    class = "LLMJsonSchema"
   )
 }
 
@@ -90,10 +52,10 @@ s_map <- function(..., .optional = FALSE) {
 #' @return A schema definition object
 #' @export
 #' @examples
-#' s_integer()
-#' s_integer(.optional = TRUE)
-#' s_integer(.optional = TRUE, .default = 0L)
-s_integer <- function(.optional = FALSE, .default = NULL) {
+#' json_integer()
+#' json_integer(.optional = TRUE)
+#' json_integer(.optional = TRUE, .default = 0L)
+json_integer <- function(.optional = FALSE, .default = NULL) {
   schema <- list(
     type = "integer",
     optional = .optional
@@ -101,12 +63,12 @@ s_integer <- function(.optional = FALSE, .default = NULL) {
 
   if (!is.null(.default)) {
     if (!is.numeric(.default) || length(.default) != 1) {
-      stop(".default for s_integer must be a single numeric value")
+      stop(".default for json_integer must be a single numeric value")
     }
     schema$default <- as.integer(.default)
   }
 
-  structure(schema, class = "llmjson_schema")
+  structure(schema, class = "LLMJsonSchema")
 }
 
 #' Create a schema for a double/numeric value
@@ -118,10 +80,10 @@ s_integer <- function(.optional = FALSE, .default = NULL) {
 #' @return A schema definition object
 #' @export
 #' @examples
-#' s_double()
-#' s_double(.optional = TRUE)
-#' s_double(.optional = TRUE, .default = 0.0)
-s_double <- function(.optional = FALSE, .default = NULL) {
+#' json_number()
+#' json_number(.optional = TRUE)
+#' json_number(.optional = TRUE, .default = 0.0)
+json_number <- function(.optional = FALSE, .default = NULL) {
   schema <- list(
     type = "double",
     optional = .optional
@@ -129,12 +91,12 @@ s_double <- function(.optional = FALSE, .default = NULL) {
 
   if (!is.null(.default)) {
     if (!is.numeric(.default) || length(.default) != 1) {
-      stop(".default for s_double must be a single numeric value")
+      stop(".default for json_number must be a single numeric value")
     }
     schema$default <- as.numeric(.default)
   }
 
-  structure(schema, class = "llmjson_schema")
+  structure(schema, class = "LLMJsonSchema")
 }
 
 #' Create a schema for a string value
@@ -146,10 +108,10 @@ s_double <- function(.optional = FALSE, .default = NULL) {
 #' @return A schema definition object
 #' @export
 #' @examples
-#' s_string()
-#' s_string(.optional = TRUE)
-#' s_string(.optional = TRUE, .default = "")
-s_string <- function(.optional = FALSE, .default = NULL) {
+#' json_string()
+#' json_string(.optional = TRUE)
+#' json_string(.optional = TRUE, .default = "")
+json_string <- function(.optional = FALSE, .default = NULL) {
   schema <- list(
     type = "string",
     optional = .optional
@@ -157,12 +119,12 @@ s_string <- function(.optional = FALSE, .default = NULL) {
 
   if (!is.null(.default)) {
     if (!is.character(.default) || length(.default) != 1) {
-      stop(".default for s_string must be a single character value")
+      stop(".default for json_string must be a single character value")
     }
     schema$default <- .default
   }
 
-  structure(schema, class = "llmjson_schema")
+  structure(schema, class = "LLMJsonSchema")
 }
 
 #' Create a schema for a logical/boolean value
@@ -174,10 +136,10 @@ s_string <- function(.optional = FALSE, .default = NULL) {
 #' @return A schema definition object
 #' @export
 #' @examples
-#' s_logical()
-#' s_logical(.optional = TRUE)
-#' s_logical(.optional = TRUE, .default = FALSE)
-s_logical <- function(.optional = FALSE, .default = NULL) {
+#' json_boolean()
+#' json_boolean(.optional = TRUE)
+#' json_boolean(.optional = TRUE, .default = FALSE)
+json_boolean <- function(.optional = FALSE, .default = NULL) {
   schema <- list(
     type = "logical",
     optional = .optional
@@ -185,12 +147,12 @@ s_logical <- function(.optional = FALSE, .default = NULL) {
 
   if (!is.null(.default)) {
     if (!is.logical(.default) || length(.default) != 1) {
-      stop(".default for s_logical must be a single logical value")
+      stop(".default for json_boolean must be a single logical value")
     }
     schema$default <- .default
   }
 
-  structure(schema, class = "llmjson_schema")
+  structure(schema, class = "LLMJsonSchema")
 }
 
 #' Create a schema for an array/vector
@@ -201,16 +163,16 @@ s_logical <- function(.optional = FALSE, .default = NULL) {
 #' @export
 #' @examples
 #' # Array of integers
-#' s_array(s_integer())
+#' json_array(json_integer())
 #'
 #' # Array of user objects
-#' s_array(s_map(
-#'   name = s_string(),
-#'   age = s_integer()
+#' json_array(json_object(
+#'   name = json_string(),
+#'   age = json_integer()
 #' ))
-s_array <- function(items, .optional = FALSE) {
-  if (!inherits(items, "llmjson_schema")) {
-    stop("items must be a schema definition created with s_* functions")
+json_array <- function(items, .optional = FALSE) {
+  if (!inherits(items, "LLMJsonSchema")) {
+    stop("items must be a schema definition created with json_* functions")
   }
 
   structure(
@@ -219,7 +181,7 @@ s_array <- function(items, .optional = FALSE) {
       items = items,
       optional = .optional
     ),
-    class = "llmjson_schema"
+    class = "LLMJsonSchema"
   )
 }
 
@@ -229,14 +191,14 @@ s_array <- function(items, .optional = FALSE) {
 #' @return A schema definition object
 #' @export
 #' @examples
-#' s_any()
-s_any <- function(.optional = FALSE) {
+#' json_any()
+json_any <- function(.optional = FALSE) {
   structure(
     list(
       type = "any",
       optional = .optional
     ),
-    class = "llmjson_schema"
+    class = "LLMJsonSchema"
   )
 }
 
@@ -259,12 +221,12 @@ s_any <- function(.optional = FALSE) {
 #' @return A schema definition object
 #' @export
 #' @examples
-#' s_date()
-#' s_date(.optional = TRUE)
-#' s_date(.format = "us_date")
-#' s_date(.format = "%d-%m-%Y")
-#' s_date(.format = c("iso8601", "us_date"))
-s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
+#' json_date()
+#' json_date(.optional = TRUE)
+#' json_date(.format = "us_date")
+#' json_date(.format = "%d-%m-%Y")
+#' json_date(.format = c("iso8601", "us_date"))
+json_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
   schema <- list(
     type = "date",
     optional = .optional
@@ -272,18 +234,18 @@ s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
 
   if (!is.null(.default)) {
     if (!inherits(.default, "Date") || length(.default) != 1) {
-      stop(".default for s_date must be a single Date object")
+      stop(".default for json_date must be a single Date object")
     }
     # Convert to string in ISO format for storage
     schema$default <- as.character(.default)
   }
 
   if (!is.character(.format)) {
-    stop(".format for s_date must be a character vector")
+    stop(".format for json_date must be a character vector")
   }
   schema$format <- .format
 
-  structure(schema, class = "llmjson_schema")
+  structure(schema, class = "LLMJsonSchema")
 }
 
 #' Create a schema for a POSIXct datetime value
@@ -308,16 +270,16 @@ s_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
 #'   Defaults to "iso8601" (`%Y-%m-%dT%H:%M:%S`)
 #' @param .tz Timezone to use for parsing. Defaults to "UTC"
 #' @return A schema definition object
-#' @name s_timestamp
+#' @name json_timestamp
 #' @export
 #' @examples
-#' s_posixct()
-#' s_posixct(.optional = TRUE)
-#' s_posixct(.format = "iso8601z")
-#' s_posixct(.format = "unix")
-#' s_posixct(.format = c("iso8601", "iso8601z"))
-#' s_posixct(.tz = "America/New_York")
-s_posixct <- function(
+#' json_timestamp()
+#' json_timestamp(.optional = TRUE)
+#' json_timestamp(.format = "iso8601z")
+#' json_timestamp(.format = "unix")
+#' json_timestamp(.format = c("iso8601", "iso8601z"))
+#' json_timestamp(.tz = "America/New_York")
+json_timestamp <- function(
   .optional = FALSE,
   .default = NULL,
   .format = "iso8601",
@@ -330,33 +292,68 @@ s_posixct <- function(
 
   if (!is.null(.default)) {
     if (!inherits(.default, "POSIXct") || length(.default) != 1) {
-      stop(".default for s_posixct must be a single POSIXct object")
+      stop(".default for json_timestamp must be a single POSIXct object")
     }
     # Convert to numeric Unix timestamp for storage
     schema$default <- as.numeric(.default)
   }
 
   if (!is.character(.format)) {
-    stop(".format for s_posixct must be a character vector")
+    stop(".format for json_timestamp must be a character vector")
   }
   schema$format <- .format
 
   if (!is.character(.tz) || length(.tz) != 1) {
-    stop(".tz for s_posixct must be a single character value")
+    stop(".tz for json_timestamp must be a single character value")
   }
   schema$tz <- .tz
 
-  structure(schema, class = "llmjson_schema")
+  structure(schema, class = "LLMJsonSchema")
 }
 
-#' @rdname s_timestamp
 #' @export
-s_timestamp <- s_posixct
+print.LLMJsonSchema <- function(x, ...) {
+  # Build schema and use Rust implementation for better performance
+  built <- json_schema(x)
+  cat(built$format(), "\n", sep = "")
+  invisible(x)
+}
+
+
+#' Build a compiled schema for efficient reuse
+#'
+#' This function compiles a schema definition into an efficient internal
+#' representation that can be reused across multiple JSON repair operations.
+#' This dramatically improves performance when repairing many JSON strings
+#' with the same schema, as the schema only needs to be parsed once.
+#'
+#' @param schema A schema definition created with json_object(), json_integer(), etc.
+#' @return A built schema object (external pointer) that can be passed to
+#'   repair_json_str(), repair_json_file(), or repair_json_raw()
+#' @export
+#' @examples
+#' # Create a schema
+#' schema <- json_object(
+#'   name = json_string(),
+#'   age = json_integer(),
+#'   email = json_string()
+#' )
+#'
+#' # Build it once
+#' built_schema <- json_schema(schema)
+#'
+#' # Reuse many times - much faster than rebuilding each time!
+#' repair_json_str('{"name": "Alice", "age": 30}', built_schema)
+#' repair_json_str('{"name": "Bob", "age": 25}', built_schema)
+json_schema <- function(schema) {
+  if (!inherits(schema, "LLMJsonSchema")) {
+    stop("schema must be a schema definition created with json_* functions")
+  }
+  LLMJsonSchemaBuilt$new(schema)
+}
 
 #' @export
-print.llmjson_schema <- function(x, ...) {
-  # Build schema and use Rust implementation for better performance
-  built <- build_schema(x)
-  cat(built$format(), "\n", sep = "")
+print.LLMJsonSchemaBuilt <- function(x, ...) {
+  x$print()
   invisible(x)
 }

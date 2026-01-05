@@ -16,8 +16,8 @@ fn get_schema(schema_robj: &Robj) -> Option<schema::Schema> {
         return None;
     }
 
-    // Check if it's an external pointer to a BuiltSchema
-    if let Some(built_schema) = <&schema::BuiltSchema>::try_from(schema_robj).ok() {
+    // Check if it's an external pointer to a LLMJsonSchemaBuilt
+    if let Some(built_schema) = <&schema::LLMJsonSchemaBuilt>::try_from(schema_robj).ok() {
         return Some(built_schema.get_schema().clone());
     }
 
@@ -91,8 +91,8 @@ fn create_repair_options(ensure_ascii: bool) -> RepairOptions {
 /// repair_json_str('{"key": "value",}')  # Removes trailing comma
 /// repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 /// repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
-#[extendr(r_name = "repair_json_str")]
-fn repair_json_str_impl(
+#[extendr]
+fn repair_json_str(
     json_str: &str,
     #[default = "NULL"] schema: Robj,
     #[default = "FALSE"] return_objects: bool,
@@ -134,8 +134,8 @@ fn repair_json_str_impl(
 /// repair_json_file("malformed.json")
 /// repair_json_file("malformed.json", return_objects = TRUE)
 /// }
-#[extendr(r_name = "repair_json_file")]
-fn repair_json_file_impl(
+#[extendr]
+fn repair_json_file(
     path: &str,
     #[default = "NULL"] schema: Robj,
     #[default = "FALSE"] return_objects: bool,
@@ -187,8 +187,8 @@ fn repair_json_file_impl(
 /// repair_json_raw(raw_data)
 /// repair_json_raw(raw_data, return_objects = TRUE)
 /// }
-#[extendr(r_name = "repair_json_raw")]
-fn repair_json_raw_impl(
+#[extendr]
+fn repair_json_raw(
     raw_bytes: &[u8],
     #[default = "NULL"] schema: Robj,
     #[default = "FALSE"] return_objects: bool,
@@ -223,8 +223,8 @@ fn repair_json_raw_impl(
 // Macro to generate exports
 extendr_module! {
     mod llmjson;
-    fn repair_json_str_impl;
-    fn repair_json_file_impl;
-    fn repair_json_raw_impl;
+    fn repair_json_str;
+    fn repair_json_file;
+    fn repair_json_raw;
     use schema;
 }

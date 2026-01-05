@@ -26,7 +26,7 @@ NULL
 #' repair_json_str('{"key": "value",}')  # Removes trailing comma
 #' repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 #' repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
-repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_str_impl, json_str, schema, return_objects, ensure_ascii)
+repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_str, json_str, schema, return_objects, ensure_ascii)
 
 #' Repair malformed JSON from a file
 #'
@@ -43,7 +43,7 @@ repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ens
 #' repair_json_file("malformed.json")
 #' repair_json_file("malformed.json", return_objects = TRUE)
 #' }
-repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_file_impl, path, schema, return_objects, ensure_ascii)
+repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_file, path, schema, return_objects, ensure_ascii)
 
 #' Repair malformed JSON from raw bytes
 #'
@@ -61,21 +61,21 @@ repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure
 #' repair_json_raw(raw_data)
 #' repair_json_raw(raw_data, return_objects = TRUE)
 #' }
-repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_raw_impl, raw_bytes, schema, return_objects, ensure_ascii)
+repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_raw, raw_bytes, schema, return_objects, ensure_ascii)
 
-BuiltSchema <- new.env(parent = emptyenv())
+LLMJsonSchemaBuilt <- new.env(parent = emptyenv())
 
-BuiltSchema$new <- function(robj) .Call(wrap__BuiltSchema__new, robj)
+LLMJsonSchemaBuilt$new <- function(robj) .Call(wrap__LLMJsonSchemaBuilt__new, robj)
 
-BuiltSchema$print <- function() invisible(.Call(wrap__BuiltSchema__print, self))
+LLMJsonSchemaBuilt$print <- function() invisible(.Call(wrap__LLMJsonSchemaBuilt__print, self))
 
-BuiltSchema$format <- function() .Call(wrap__BuiltSchema__format, self)
-
-#' @export
-`$.BuiltSchema` <- function (self, name) { func <- BuiltSchema[[name]]; environment(func) <- environment(); func }
+LLMJsonSchemaBuilt$format <- function() .Call(wrap__LLMJsonSchemaBuilt__format, self)
 
 #' @export
-`[[.BuiltSchema` <- `$.BuiltSchema`
+`$.LLMJsonSchemaBuilt` <- function (self, name) { func <- LLMJsonSchemaBuilt[[name]]; environment(func) <- environment(); func }
+
+#' @export
+`[[.LLMJsonSchemaBuilt` <- `$.LLMJsonSchemaBuilt`
 
 
 # nolint end
