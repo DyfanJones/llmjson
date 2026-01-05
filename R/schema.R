@@ -35,7 +35,7 @@ json_object <- function(..., .optional = FALSE) {
 
   structure(
     list(
-      type = "map",
+      type = "object",
       fields = fields,
       optional = .optional
     ),
@@ -85,7 +85,7 @@ json_integer <- function(.optional = FALSE, .default = NULL) {
 #' json_number(.optional = TRUE, .default = 0.0)
 json_number <- function(.optional = FALSE, .default = NULL) {
   schema <- list(
-    type = "double",
+    type = "number",
     optional = .optional
   )
 
@@ -141,7 +141,7 @@ json_string <- function(.optional = FALSE, .default = NULL) {
 #' json_boolean(.optional = TRUE, .default = FALSE)
 json_boolean <- function(.optional = FALSE, .default = NULL) {
   schema <- list(
-    type = "logical",
+    type = "boolean",
     optional = .optional
   )
 
@@ -286,7 +286,7 @@ json_timestamp <- function(
   .tz = "UTC"
 ) {
   schema <- list(
-    type = "posixct",
+    type = "timestamp",
     optional = .optional
   )
 

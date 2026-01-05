@@ -121,7 +121,7 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
     let padding = "  ".repeat(indent);
 
     match schema {
-        Schema::Map {
+        Schema::Object {
             fields,
             optional: _,
         } => {
@@ -133,7 +133,7 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
                 result.push_str(&format!("{}  \"{}\": ", padding, field_name));
 
                 match field_schema {
-                    Schema::Map { .. } | Schema::Array { .. } => {
+                    Schema::Object { .. } | Schema::Array { .. } => {
                         result.push('\n');
                         result.push_str(&format_schema_helper(field_schema, indent + 1));
                     }
@@ -180,17 +180,17 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
     }
 }
 
-/// Get the type name for a schema
+/// Get the type name for a schema (using JSON Schema naming conventions)
 fn get_type_name(schema: &Schema) -> &str {
     match schema {
         Schema::Integer { .. } => "integer",
-        Schema::Double { .. } => "double",
+        Schema::Number { .. } => "number",
         Schema::String { .. } => "string",
-        Schema::Logical { .. } => "logical",
+        Schema::Boolean { .. } => "boolean",
         Schema::Date { .. } => "date",
-        Schema::Posixct { .. } => "posixct",
+        Schema::Timestamp { .. } => "timestamp",
         Schema::Array { .. } => "array",
-        Schema::Map { .. } => "map",
+        Schema::Object { .. } => "object",
         Schema::Any { .. } => "any",
     }
 }
@@ -199,23 +199,23 @@ fn get_type_name(schema: &Schema) -> &str {
 fn get_default_string(schema: &Schema) -> Option<String> {
     match schema {
         Schema::Integer { default, .. } => default.map(|v| v.to_string()),
-        Schema::Double { default, .. } => default.map(|v| v.to_string()),
+        Schema::Number { default, .. } => default.map(|v| v.to_string()),
         Schema::String { default, .. } => default.as_ref().map(|v| format!("\"{}\"", v)),
-        Schema::Logical { default, .. } => default.map(|v| v.to_string()),
+        Schema::Boolean { default, .. } => default.map(|v| v.to_string()),
         Schema::Date { default, .. } => default.as_ref().map(|v| format!("\"{}\"", v)),
-        Schema::Posixct { default, .. } => default.map(|v| v.to_string()),
+        Schema::Timestamp { default, .. } => default.map(|v| v.to_string()),
         _ => None,
     }
 }
 
-/// Schema definition for JSON validation and conversion
+/// Schema definition for JSON validation and conversion (using JSON Schema naming)
 #[derive(Debug, Clone, PartialEq)]
 pub enum Schema {
     Integer {
         optional: bool,
         default: Option<i32>,
     },
-    Double {
+    Number {
         optional: bool,
         default: Option<f64>,
     },
@@ -223,7 +223,7 @@ pub enum Schema {
         optional: bool,
         default: Option<String>,
     },
-    Logical {
+    Boolean {
         optional: bool,
         default: Option<bool>,
     },
@@ -232,7 +232,7 @@ pub enum Schema {
         default: Option<String>,     // ISO format date string
         format: Option<Vec<String>>, // Format string(s) for parsing
     },
-    Posixct {
+    Timestamp {
         optional: bool,
         default: Option<f64>,        // Unix timestamp
         format: Option<Vec<String>>, // Format string(s) for parsing
@@ -242,7 +242,7 @@ pub enum Schema {
         items: Box<Schema>,
         optional: bool,
     },
-    Map {
+    Object {
         fields: IndexMap<String, Schema>,
         optional: bool,
     },
@@ -287,12 +287,12 @@ impl Schema {
                     .and_then(|(_, robj)| robj.as_integer());
                 Ok(Schema::Integer { optional, default })
             }
-            "double" => {
+            "number" => {
                 let default = list
                     .iter()
                     .find(|(name, _)| *name == "default")
                     .and_then(|(_, robj)| robj.as_real());
-                Ok(Schema::Double { optional, default })
+                Ok(Schema::Number { optional, default })
             }
             "string" => {
                 let default = list
@@ -302,12 +302,12 @@ impl Schema {
                     .map(|s| s.to_string());
                 Ok(Schema::String { optional, default })
             }
-            "logical" => {
+            "boolean" => {
                 let default = list
                     .iter()
                     .find(|(name, _)| *name == "default")
                     .and_then(|(_, robj)| robj.as_bool());
-                Ok(Schema::Logical { optional, default })
+                Ok(Schema::Boolean { optional, default })
             }
             "date" => {
                 let default = list
@@ -334,7 +334,7 @@ impl Schema {
                     format,
                 })
             }
-            "posixct" => {
+            "timestamp" => {
                 let default = list
                     .iter()
                     .find(|(name, _)| *name == "default")
@@ -359,7 +359,7 @@ impl Schema {
                     .unwrap_or("UTC")
                     .to_string();
 
-                Ok(Schema::Posixct {
+                Ok(Schema::Timestamp {
                     optional,
                     default,
                     format,
@@ -379,13 +379,15 @@ impl Schema {
                     optional,
                 })
             }
-            "map" => {
+            "object" => {
                 let fields_robj = list
                     .iter()
                     .find(|(name, _)| *name == "fields")
-                    .ok_or("Map schema must have 'fields' field")?
+                    .ok_or("Object schema must have 'fields' field")?
                     .1;
-                let fields_list = fields_robj.as_list().ok_or("Map 'fields' must be a list")?;
+                let fields_list = fields_robj
+                    .as_list()
+                    .ok_or("Object 'fields' must be a list")?;
 
                 let mut fields = IndexMap::new();
                 for (name, field_schema) in fields_list.iter() {
@@ -393,7 +395,7 @@ impl Schema {
                     fields.insert(name.to_string(), schema);
                 }
 
-                Ok(Schema::Map { fields, optional })
+                Ok(Schema::Object { fields, optional })
             }
             _ => Err(format!("Unknown schema type: {}", schema_type)),
         }
@@ -439,7 +441,7 @@ impl Schema {
                     _ => Err(format!("Cannot convert {:?} to integer", value)),
                 }
             }
-            Schema::Double { .. } => {
+            Schema::Number { .. } => {
                 // Try direct numeric conversion
                 if let Some(f) = value.as_f64() {
                     return Ok(Robj::from(f));
@@ -481,7 +483,7 @@ impl Schema {
                     Ok(Robj::from(string_value.as_str()))
                 }
             }
-            Schema::Logical { .. } => {
+            Schema::Boolean { .. } => {
                 // Try direct boolean conversion
                 if let Some(b) = value.as_bool() {
                     return Ok(Robj::from(b));
@@ -556,7 +558,7 @@ impl Schema {
                     Err(format!("Cannot convert {:?} to Date", value))
                 }
             }
-            Schema::Posixct { format, tz, .. } => {
+            Schema::Timestamp { format, tz, .. } => {
                 // Handle datetime strings
                 if let Some(s) = value.as_str() {
                     // Get formats to try (either from schema or default)
@@ -632,7 +634,7 @@ impl Schema {
                     Err(format!("Expected array, got {:?}", value))
                 }
             }
-            Schema::Map { fields, .. } => {
+            Schema::Object { fields, .. } => {
                 if let Some(obj) = value.as_object() {
                     self.apply_to_object(obj, fields)
                 } else {
@@ -682,7 +684,7 @@ impl Schema {
                     Ok(List::from_values(results).into_robj())
                 }
             }
-            Schema::Double { .. } => {
+            Schema::Number { .. } => {
                 // Try to create a double vector
                 let mut doubles = Vec::with_capacity(results.len());
                 let mut all_doubles = true;
@@ -721,7 +723,7 @@ impl Schema {
                     Ok(List::from_values(results).into_robj())
                 }
             }
-            Schema::Logical { .. } => {
+            Schema::Boolean { .. } => {
                 // Try to create a logical vector
                 let mut logicals = Vec::with_capacity(results.len());
                 let mut all_logicals = true;
@@ -793,13 +795,13 @@ impl Schema {
     fn is_optional(&self) -> bool {
         match self {
             Schema::Integer { optional, .. }
-            | Schema::Double { optional, .. }
+            | Schema::Number { optional, .. }
             | Schema::String { optional, .. }
-            | Schema::Logical { optional, .. }
+            | Schema::Boolean { optional, .. }
             | Schema::Date { optional, .. }
-            | Schema::Posixct { optional, .. }
+            | Schema::Timestamp { optional, .. }
             | Schema::Array { optional, .. }
-            | Schema::Map { optional, .. }
+            | Schema::Object { optional, .. }
             | Schema::Any { optional } => *optional,
         }
     }
@@ -808,9 +810,9 @@ impl Schema {
     fn get_default(&self) -> Option<Robj> {
         match self {
             Schema::Integer { default, .. } => default.map(|v| Robj::from(v)),
-            Schema::Double { default, .. } => default.map(|v| Robj::from(v)),
+            Schema::Number { default, .. } => default.map(|v| Robj::from(v)),
             Schema::String { default, .. } => default.as_ref().map(|v| Robj::from(v.as_str())),
-            Schema::Logical { default, .. } => default.map(|v| Robj::from(v)),
+            Schema::Boolean { default, .. } => default.map(|v| Robj::from(v)),
             Schema::Date { default, .. } => {
                 default.as_ref().and_then(|date_str| {
                     // Parse date string and create R Date object
@@ -818,7 +820,7 @@ impl Schema {
                     R!("structure({{date_num}}, class='Date')").ok()
                 })
             }
-            Schema::Posixct { default, tz, .. } => {
+            Schema::Timestamp { default, tz, .. } => {
                 default.and_then(|timestamp| {
                     // Create R POSIXct object from timestamp
                     R!("structure({{timestamp}}, class=c('POSIXct', 'POSIXt'), tzone={{tz}})").ok()
@@ -832,7 +834,7 @@ impl Schema {
     /// Returns a modified JSON value with defaults applied
     pub fn apply_defaults(&self, value: &Value) -> StdResult<Value, String> {
         match self {
-            Schema::Map { fields, .. } => {
+            Schema::Object { fields, .. } => {
                 if let Some(obj) = value.as_object() {
                     let mut new_obj = serde_json::Map::new();
 
@@ -876,7 +878,7 @@ impl Schema {
                 // Coerce to integer
                 self.coerce_to_integer(value)
             }
-            Schema::Double { .. } => {
+            Schema::Number { .. } => {
                 // Coerce to double
                 self.coerce_to_double(value)
             }
@@ -884,11 +886,11 @@ impl Schema {
                 // Coerce to string
                 self.coerce_to_string(value)
             }
-            Schema::Logical { .. } => {
+            Schema::Boolean { .. } => {
                 // Coerce to boolean
                 self.coerce_to_boolean(value)
             }
-            Schema::Date { .. } | Schema::Posixct { .. } => {
+            Schema::Date { .. } | Schema::Timestamp { .. } => {
                 // For date types in apply_defaults, just return the value as-is
                 // The actual conversion happens in apply() method
                 Ok(value.clone())
@@ -1011,13 +1013,13 @@ impl Schema {
     fn get_default_json(&self) -> Option<Value> {
         match self {
             Schema::Integer { default, .. } => default.map(|v| Value::Number(v.into())),
-            Schema::Double { default, .. } => {
+            Schema::Number { default, .. } => {
                 default.and_then(|v| serde_json::Number::from_f64(v).map(Value::Number))
             }
             Schema::String { default, .. } => default.as_ref().map(|v| Value::String(v.clone())),
-            Schema::Logical { default, .. } => default.map(|v| Value::Bool(v)),
+            Schema::Boolean { default, .. } => default.map(|v| Value::Bool(v)),
             Schema::Date { default, .. } => default.as_ref().map(|v| Value::String(v.clone())),
-            Schema::Posixct { default, .. } => {
+            Schema::Timestamp { default, .. } => {
                 default.and_then(|v| serde_json::Number::from_f64(v).map(Value::Number))
             }
             _ => None,

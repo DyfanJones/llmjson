@@ -204,7 +204,7 @@ test_that("repair_json_raw returns R objects when return_objects = TRUE", {
 test_that("json_object creates a valid schema", {
   schema <- json_object(name = json_string(), age = json_integer())
   expect_s3_class(schema, "LLMJsonSchema")
-  expect_equal(schema$type, "map")
+  expect_equal(schema$type, "object")
   expect_length(schema$fields, 2)
 })
 
@@ -664,7 +664,7 @@ test_that("json_date handles default dates", {
 test_that("json_timestamp creates valid schema", {
   schema <- json_timestamp()
   expect_s3_class(schema, "LLMJsonSchema")
-  expect_equal(schema$type, "posixct")
+  expect_equal(schema$type, "timestamp")
 })
 
 test_that("json_timestamp parses ISO8601 datetime strings", {
