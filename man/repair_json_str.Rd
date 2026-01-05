@@ -43,5 +43,5 @@ repair_json_str(json_str, return_objects = TRUE, int64 = "double")  # May lose p
 repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")   # Requires bit64 package
 }
 \seealso{
-\code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{schema}}, \code{\link{json_schema}}
+\code{\link[=repair_json_file]{repair_json_file()}}, \code{\link[=repair_json_raw]{repair_json_raw()}}, \code{\link[=repair_json_conn]{repair_json_conn()}}, \code{\link[=schema]{schema()}}, \code{\link[=json_schema]{json_schema()}}
 }

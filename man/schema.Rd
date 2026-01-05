@@ -7,42 +7,47 @@
 \alias{json_number}
 \alias{json_string}
 \alias{json_boolean}
+\alias{json_enum}
 \alias{json_array}
 \alias{json_any}
 \alias{json_date}
 \alias{json_timestamp}
 \title{Schema builders for JSON repair and validation}
 \usage{
-json_object(..., .optional = FALSE)
+json_object(..., .required = FALSE)
 
-json_integer(.default = 0L, .optional = FALSE)
+json_integer(.default = 0L, .required = FALSE)
 
-json_number(.default = 0, .optional = FALSE)
+json_number(.default = 0, .required = FALSE)
 
-json_string(.default = "", .optional = FALSE)
+json_string(.default = "", .required = FALSE)
 
-json_boolean(.default = FALSE, .optional = FALSE)
+json_boolean(.default = FALSE, .required = FALSE)
 
-json_array(items, .optional = FALSE)
+json_enum(values, .default = NULL, .required = FALSE)
 
-json_any(.optional = FALSE)
+json_array(items, .required = FALSE)
 
-json_date(.default = NULL, .format = "iso8601", .optional = FALSE)
+json_any(.required = FALSE)
+
+json_date(.default = NULL, .format = "iso8601", .required = FALSE)
 
 json_timestamp(
   .default = NULL,
   .format = "iso8601",
   .tz = "UTC",
-  .optional = FALSE
+  .required = FALSE
 )
 }
 \arguments{
 \item{...}{Named arguments defining the schema for each field (json_object only)}
 
-\item{.optional}{Logical; if TRUE, will use default value.}
+\item{.required}{Logical; if TRUE, field must be present (default FALSE)}
 
 \item{.default}{Default value to use when field is missing. Only applies to
-required fields (.optional = FALSE)}
+required fields (.required = TRUE)}
+
+\item{values}{Character vector of allowed values (json_enum only)}
 
 \item{items}{Schema definition for array elements (json_array only)}
 
@@ -76,11 +81,15 @@ schema <- json_object(
 # Array of integers
 json_array(json_integer())
 
+# Enum with allowed values
+json_enum(c("active", "inactive", "pending"))
+
 # Optional fields with defaults
 json_object(
-  name = json_string(),
-  age = json_integer(.default = 0L, .optional = TRUE),
-  active = json_boolean(.default = TRUE)
+  name = json_string(.required = TRUE),
+  age = json_integer(.default = 0L),
+  active = json_boolean(.default = TRUE, .required = TRUE),
+  status = json_enum(c("active", "inactive"), .required = TRUE)
 )
 
 # Date and timestamp handling
@@ -90,5 +99,5 @@ json_object(
 )
 }
 \seealso{
-\code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{json_schema}}
+\code{\link[=repair_json_str]{repair_json_str()}}, \code{\link[=repair_json_file]{repair_json_file()}}, \code{\link[=repair_json_raw]{repair_json_raw()}}, \code{\link[=repair_json_conn]{repair_json_conn()}}, \code{\link[=json_schema]{json_schema()}}
 }

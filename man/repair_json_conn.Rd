@@ -53,5 +53,5 @@ result <- with(file("malformed.json", "r"), repair_json_conn(conn))
 }
 }
 \seealso{
-\code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{schema}}, \code{\link{json_schema}}
+\code{\link[=repair_json_str]{repair_json_str()}}, \code{\link[=repair_json_file]{repair_json_file()}}, \code{\link[=repair_json_raw]{repair_json_raw()}}, \code{\link[=schema]{schema()}}, \code{\link[=json_schema]{json_schema()}}
 }

@@ -6,15 +6,15 @@
 #'
 #' @param ... Named arguments defining the schema for each field (json_object only)
 #' @param items Schema definition for array elements (json_array only)
-#' @param .optional Logical; if TRUE, will use default value.
+#' @param .required Logical; if TRUE, field must be present (default FALSE)
 #' @param .default Default value to use when field is missing. Only applies to
-#'   required fields (.optional = FALSE)
+#'   required fields (.required = TRUE)
 #' @param .format Format string(s) for parsing dates/timestamps (json_date/json_timestamp only)
 #' @param .tz Timezone to use for parsing timestamps (json_timestamp only). Defaults to "UTC"
 #' @return A schema definition object
 #' @name schema
 #' @rdname schema
-#' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{json_schema}}
+#' @seealso [repair_json_str()], [repair_json_file()], [repair_json_raw()], [repair_json_conn()], [json_schema()]
 #' @export
 #' @examples
 #' # Basic types
@@ -34,11 +34,15 @@
 #' # Array of integers
 #' json_array(json_integer())
 #'
+#' # Enum with allowed values
+#' json_enum(c("active", "inactive", "pending"))
+#'
 #' # Optional fields with defaults
 #' json_object(
-#'   name = json_string(),
-#'   age = json_integer(.default = 0L, .optional = TRUE),
-#'   active = json_boolean(.default = TRUE)
+#'   name = json_string(.required = TRUE),
+#'   age = json_integer(.default = 0L),
+#'   active = json_boolean(.default = TRUE, .required = TRUE),
+#'   status = json_enum(c("active", "inactive"), .required = TRUE)
 #' )
 #'
 #' # Date and timestamp handling
@@ -46,7 +50,7 @@
 #'   birthday = json_date(.format = "us_date"),
 #'   created_at = json_timestamp(.format = "iso8601z", .tz = "UTC")
 #' )
-json_object <- function(..., .optional = FALSE) {
+json_object <- function(..., .required = FALSE) {
   fields <- list(...)
 
   if (length(fields) == 0) {
@@ -61,7 +65,7 @@ json_object <- function(..., .optional = FALSE) {
     list(
       type = "object",
       fields = fields,
-      optional = .optional
+      required = .required
     ),
     class = "LLMJsonSchema"
   )
@@ -69,10 +73,10 @@ json_object <- function(..., .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_integer <- function(.default = 0L, .optional = FALSE) {
+json_integer <- function(.default = 0L, .required = FALSE) {
   schema <- list(
     type = "integer",
-    optional = .optional
+    required = .required
   )
 
   if (!is.numeric(.default) || length(.default) != 1) {
@@ -85,10 +89,10 @@ json_integer <- function(.default = 0L, .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_number <- function(.default = 0.0, .optional = FALSE) {
+json_number <- function(.default = 0.0, .required = FALSE) {
   schema <- list(
     type = "number",
-    optional = .optional
+    required = .required
   )
 
   if (!is.numeric(.default) || length(.default) != 1) {
@@ -101,10 +105,10 @@ json_number <- function(.default = 0.0, .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_string <- function(.default = "", .optional = FALSE) {
+json_string <- function(.default = "", .required = FALSE) {
   schema <- list(
     type = "string",
-    optional = .optional
+    required = .required
   )
 
   if (!is.character(.default) || length(.default) != 1) {
@@ -117,10 +121,10 @@ json_string <- function(.default = "", .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_boolean <- function(.default = FALSE, .optional = FALSE) {
+json_boolean <- function(.default = FALSE, .required = FALSE) {
   schema <- list(
     type = "boolean",
-    optional = .optional
+    required = .required
   )
 
   if (!is.logical(.default) || length(.default) != 1) {
@@ -132,8 +136,35 @@ json_boolean <- function(.default = FALSE, .optional = FALSE) {
 }
 
 #' @rdname schema
+#' @param values Character vector of allowed values (json_enum only)
 #' @export
-json_array <- function(items, .optional = FALSE) {
+json_enum <- function(values, .default = NULL, .required = FALSE) {
+  if (!is.character(values) || length(values) == 0) {
+    stop("values must be a non-empty character vector")
+  }
+
+  schema <- list(
+    type = "enum",
+    values = values,
+    required = .required
+  )
+
+  if (!is.null(.default)) {
+    if (!is.character(.default) || length(.default) != 1) {
+      stop(".default for json_enum must be a single character value")
+    }
+    if (!.default %in% values) {
+      stop(".default must be one of the allowed values")
+    }
+    schema$default <- .default
+  }
+
+  structure(schema, class = "LLMJsonSchema")
+}
+
+#' @rdname schema
+#' @export
+json_array <- function(items, .required = FALSE) {
   if (!inherits(items, "LLMJsonSchema")) {
     stop("items must be a schema definition created with json_* functions")
   }
@@ -142,7 +173,7 @@ json_array <- function(items, .optional = FALSE) {
     list(
       type = "array",
       items = items,
-      optional = .optional
+      required = .required
     ),
     class = "LLMJsonSchema"
   )
@@ -150,11 +181,11 @@ json_array <- function(items, .optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_any <- function(.optional = FALSE) {
+json_any <- function(.required = FALSE) {
   structure(
     list(
       type = "any",
-      optional = .optional
+      required = .required
     ),
     class = "LLMJsonSchema"
   )
@@ -162,10 +193,10 @@ json_any <- function(.optional = FALSE) {
 
 #' @rdname schema
 #' @export
-json_date <- function(.default = NULL, .format = "iso8601", .optional = FALSE) {
+json_date <- function(.default = NULL, .format = "iso8601", .required = FALSE) {
   schema <- list(
     type = "date",
-    optional = .optional
+    required = .required
   )
 
   if (!is.null(.default)) {
@@ -190,11 +221,11 @@ json_timestamp <- function(
   .default = NULL,
   .format = "iso8601",
   .tz = "UTC",
-  .optional = FALSE
+  .required = FALSE
 ) {
   schema <- list(
     type = "timestamp",
-    optional = .optional
+    required = .required
   )
 
   if (!is.null(.default)) {
@@ -234,13 +265,23 @@ print.LLMJsonSchema <- function(x, ...) {
 #' This dramatically improves performance when repairing many JSON strings
 #' with the same schema, as the schema only needs to be parsed once.
 #'
-#' @param schema A schema definition created with json_object(), json_integer(), etc.
-#' @return A built schema object (external pointer) that can be passed to
+#' The function is a generic that supports:
+#' - **LLMJsonSchema objects**: Created with `json_object()`,
+#'   `json_integer()`, etc.
+#' - **ellmer Type objects**: Automatically converted from ellmer's
+#'   type system (requires ellmer package)
+#'
+#' @param schema A schema definition. Can be:
+#'   - An LLMJsonSchema object created with json_object(), json_integer(), etc.
+#'   - An ellmer Type object (TypeBasic, TypeEnum, TypeArray, TypeObject, etc.)
+#' @param ... Additional arguments passed to methods
+#' @return A LLMJsonSchemaBuilt object (external pointer) that can be passed to
 #'   repair_json_str(), repair_json_file(), or repair_json_raw()
-#' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{schema}}
+#' @seealso [repair_json_str()], [repair_json_file()],
+#'   [repair_json_raw()], [repair_json_conn()], [schema()]
 #' @export
 #' @examples
-#' # Create a schema
+#' # Create a schema using llmjson functions
 #' schema <- json_object(
 #'   name = json_string(),
 #'   age = json_integer(),
@@ -253,11 +294,153 @@ print.LLMJsonSchema <- function(x, ...) {
 #' # Reuse many times - much faster than rebuilding each time!
 #' repair_json_str('{"name": "Alice", "age": 30}', built_schema)
 #' repair_json_str('{"name": "Bob", "age": 25}', built_schema)
-json_schema <- function(schema) {
-  if (!inherits(schema, "LLMJsonSchema")) {
-    stop("schema must be a schema definition created with json_* functions")
-  }
+#'
+#' \dontrun{
+#' # Convert from ellmer types (requires ellmer package)
+#' library(ellmer)
+#'
+#' user_type <- type_object(
+#'   name = type_string(required = TRUE),
+#'   age = type_integer(),
+#'   status = type_enum(c("active", "inactive"), required = TRUE)
+#' )
+#'
+#' # Automatically converts ellmer type to llmjson schema
+#' built_schema <- json_schema(user_type)
+#'
+#' repair_json_str(
+#'   '{"name": "Alice", "age": 30, "status": "active"}',
+#'   schema = built_schema,
+#'   return_objects = TRUE
+#' )
+#' }
+json_schema <- function(schema, ...) {
+  UseMethod("json_schema")
+}
+
+#' @rdname json_schema
+#' @export
+json_schema.LLMJsonSchema <- function(schema, ...) {
   LLMJsonSchemaBuilt$new(schema)
+}
+
+#' @rdname json_schema
+#' @export
+json_schema.Type <- function(schema, ...) {
+  if (!requireNamespace("ellmer", quietly = TRUE)) {
+    stop("Package 'ellmer' is required to convert ellmer types")
+  }
+
+  # Convert ellmer Type to LLMJsonSchema
+  llmjson_schema <- convert_ellmer_type(schema)
+
+  # Build and return
+  LLMJsonSchemaBuilt$new(llmjson_schema)
+}
+
+#' Convert ellmer Type to LLMJsonSchema
+#' @noRd
+convert_ellmer_type <- function(type) {
+  if (!requireNamespace("ellmer", quietly = TRUE)) {
+    stop("Package 'ellmer' is required")
+  }
+
+  # Get the required field (ellmer uses 'required' property)
+  # In ellmer, required=TRUE means field must be present
+  # In llmjson, required=TRUE means field must be present
+  # So they align!
+  required <- isTRUE(type@required)
+
+  # Handle different ellmer type classes
+  if (inherits(type, "TypeBasic")) {
+    convert_type_basic(type, required)
+  } else if (inherits(type, "TypeEnum")) {
+    convert_type_enum(type, required)
+  } else if (inherits(type, "TypeArray")) {
+    convert_type_array(type, required)
+  } else if (inherits(type, "TypeObject")) {
+    convert_type_object(type, required)
+  } else if (inherits(type, "TypeJsonSchema")) {
+    convert_type_json_schema(type, required)
+  } else if (inherits(type, "TypeIgnore")) {
+    NULL  # TypeIgnore means don't include this field
+  } else {
+    stop("Unsupported ellmer type: ", paste(class(type), collapse = ", "))
+  }
+}
+
+#' @noRd
+convert_type_basic <- function(type, required) {
+  type_name <- type@type
+
+  switch(type_name,
+    "boolean" = json_boolean(.required = required),
+    "integer" = json_integer(.required = required),
+    "number" = json_number(.required = required),
+    "string" = json_string(.required = required),
+    stop("Unknown TypeBasic type: ", type_name)
+  )
+}
+
+#' @noRd
+convert_type_enum <- function(type, required) {
+  values <- type@values
+
+  if (!is.character(values) || length(values) == 0) {
+    stop("TypeEnum must have character values")
+  }
+
+  json_enum(values = values, .required = required)
+}
+
+#' @noRd
+convert_type_array <- function(type, required) {
+  items_type <- type@items
+
+  # Recursively convert the items type
+  items_schema <- convert_ellmer_type(items_type)
+
+  if (is.null(items_schema)) {
+    stop("Array items type cannot be TypeIgnore")
+  }
+
+  json_array(items = items_schema, .required = required)
+}
+
+#' @noRd
+convert_type_object <- function(type, required) {
+  properties <- type@properties
+
+  if (!is.list(properties) || is.null(names(properties))) {
+    stop("TypeObject must have named properties list")
+  }
+
+  # Convert each property, filtering out TypeIgnore
+  fields <- list()
+  for (name in names(properties)) {
+    prop_schema <- convert_ellmer_type(properties[[name]])
+
+    # Skip TypeIgnore fields
+    if (!is.null(prop_schema)) {
+      fields[[name]] <- prop_schema
+    }
+  }
+
+  if (length(fields) == 0) {
+    stop("TypeObject must have at least one non-ignored field")
+  }
+
+  do.call(json_object, c(fields, list(.required = required)))
+}
+
+#' @noRd
+convert_type_json_schema <- function(type, required) {
+  # TypeJsonSchema contains raw JSON schema
+  # We could try to parse it, but for now just error
+  stop(
+    "TypeJsonSchema is not directly supported. ",
+    "Please convert to specific ellmer types (TypeBasic, TypeEnum, TypeArray, TypeObject) first."
+  )
 }
 
 #' @export

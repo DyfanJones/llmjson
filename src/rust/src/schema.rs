@@ -123,7 +123,7 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
     match schema {
         Schema::Object {
             fields,
-            optional: _,
+            required: _,
         } => {
             let mut result = String::new();
 
@@ -140,8 +140,14 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
                     _ => {
                         // Inline simple types
                         let mut type_str = format!("\"{}\"", get_type_name(field_schema));
-                        if field_schema.is_optional() {
-                            type_str.push_str(" (optional)");
+
+                        // Add enum values if this is an enum
+                        if let Schema::Enum { values, .. } = field_schema {
+                            type_str.push_str(&format!(" {}", get_enum_values_string(values)));
+                        }
+
+                        if field_schema.is_required() {
+                            type_str.push_str(" (required)");
                         }
                         if let Some(default_str) = get_default_string(field_schema) {
                             type_str.push_str(&format!(" [default: {}]", default_str));
@@ -158,7 +164,7 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
 
             format!("{}{{\n{}{}}}", padding, result, padding)
         }
-        Schema::Array { items, optional: _ } => {
+        Schema::Array { items, required: _ } => {
             format!(
                 "{}[\n{}\n{}]",
                 padding,
@@ -169,8 +175,14 @@ fn format_schema_helper(schema: &Schema, indent: usize) -> String {
         _ => {
             // Simple types at top level (shouldn't happen in normal usage)
             let mut type_str = format!("{}\"{}\"", padding, get_type_name(schema));
-            if schema.is_optional() {
-                type_str.push_str(" (optional)");
+
+            // Add enum values if this is an enum
+            if let Schema::Enum { values, .. } = schema {
+                type_str.push_str(&format!(" {}", get_enum_values_string(values)));
+            }
+
+            if schema.is_required() {
+                type_str.push_str(" (required)");
             }
             if let Some(default_str) = get_default_string(schema) {
                 type_str.push_str(&format!(" [default: {}]", default_str));
@@ -187,6 +199,7 @@ fn get_type_name(schema: &Schema) -> &str {
         Schema::Number { .. } => "number",
         Schema::String { .. } => "string",
         Schema::Boolean { .. } => "boolean",
+        Schema::Enum { .. } => "enum",
         Schema::Date { .. } => "date",
         Schema::Timestamp { .. } => "timestamp",
         Schema::Array { .. } => "array",
@@ -202,52 +215,92 @@ fn get_default_string(schema: &Schema) -> Option<String> {
         Schema::Number { default, .. } => default.map(|v| v.to_string()),
         Schema::String { default, .. } => default.as_ref().map(|v| format!("\"{}\"", v)),
         Schema::Boolean { default, .. } => default.map(|v| v.to_string()),
+        Schema::Enum { default, .. } => default.as_ref().map(|v| format!("\"{}\"", v)),
         Schema::Date { default, .. } => default.as_ref().map(|v| format!("\"{}\"", v)),
         Schema::Timestamp { default, .. } => default.map(|v| v.to_string()),
         _ => None,
     }
 }
 
+/// Get enum values as a formatted string (truncated if too long)
+fn get_enum_values_string(values: &[String]) -> String {
+    const MAX_VALUES: usize = 5;
+    const MAX_LENGTH: usize = 60;
+
+    if values.is_empty() {
+        return "[]".to_string();
+    }
+
+    let mut result = String::from("[");
+    let mut current_length = 1;
+    let mut values_shown = 0;
+
+    for (i, value) in values.iter().enumerate() {
+        let value_str = format!("\"{}\"", value);
+        let separator = if i > 0 { ", " } else { "" };
+        let addition = format!("{}{}", separator, value_str);
+
+        // Check if we've hit our limits
+        if values_shown >= MAX_VALUES || current_length + addition.len() > MAX_LENGTH {
+            let remaining = values.len() - values_shown;
+            result.push_str(&format!(", ... {} more", remaining));
+            break;
+        }
+
+        result.push_str(&addition);
+        current_length += addition.len();
+        values_shown += 1;
+    }
+
+    result.push(']');
+    result
+}
+
 /// Schema definition for JSON validation and conversion (using JSON Schema naming)
 #[derive(Debug, Clone, PartialEq)]
 pub enum Schema {
     Integer {
-        optional: bool,
+        required: bool,
         default: Option<i32>,
     },
     Number {
-        optional: bool,
+        required: bool,
         default: Option<f64>,
     },
     String {
-        optional: bool,
+        required: bool,
         default: Option<String>,
     },
     Boolean {
-        optional: bool,
+        required: bool,
         default: Option<bool>,
     },
+    Enum {
+        values: Vec<String>,
+        required: bool,
+        default: Option<String>,
+    },
     Date {
-        optional: bool,
+        required: bool,
         default: Option<String>,     // ISO format date string
         format: Option<Vec<String>>, // Format string(s) for parsing
     },
     Timestamp {
-        optional: bool,
+        required: bool,
         default: Option<f64>,        // Unix timestamp
         format: Option<Vec<String>>, // Format string(s) for parsing
         tz: String,                  // Timezone (default "UTC")
     },
     Array {
         items: Box<Schema>,
-        optional: bool,
+        required: bool,
     },
     Object {
         fields: IndexMap<String, Schema>,
-        optional: bool,
+        required: bool,
     },
     Any {
-        optional: bool,
+        required: bool,
     },
 }
 
@@ -272,10 +325,10 @@ impl Schema {
             .1;
         let schema_type = type_robj.as_str().ok_or("Schema 'type' must be a string")?;
 
-        // Get the 'optional' field
-        let optional = list
+        // Get the 'required' field
+        let required = list
             .iter()
-            .find(|(name, _)| *name == "optional")
+            .find(|(name, _)| *name == "required")
             .and_then(|(_, robj)| robj.as_bool())
             .unwrap_or(false);
 
@@ -285,14 +338,14 @@ impl Schema {
                     .iter()
                     .find(|(name, _)| *name == "default")
                     .and_then(|(_, robj)| robj.as_integer());
-                Ok(Schema::Integer { optional, default })
+                Ok(Schema::Integer { required, default })
             }
             "number" => {
                 let default = list
                     .iter()
                     .find(|(name, _)| *name == "default")
                     .and_then(|(_, robj)| robj.as_real());
-                Ok(Schema::Number { optional, default })
+                Ok(Schema::Number { required, default })
             }
             "string" => {
                 let default = list
@@ -300,14 +353,39 @@ impl Schema {
                     .find(|(name, _)| *name == "default")
                     .and_then(|(_, robj)| robj.as_str())
                     .map(|s| s.to_string());
-                Ok(Schema::String { optional, default })
+                Ok(Schema::String { required, default })
             }
             "boolean" => {
                 let default = list
                     .iter()
                     .find(|(name, _)| *name == "default")
                     .and_then(|(_, robj)| robj.as_bool());
-                Ok(Schema::Boolean { optional, default })
+                Ok(Schema::Boolean { required, default })
+            }
+            "enum" => {
+                let values_robj = list
+                    .iter()
+                    .find(|(name, _)| *name == "values")
+                    .ok_or("Enum schema must have 'values' field")?
+                    .1;
+                let values = values_robj
+                    .as_str_vector()
+                    .ok_or("Enum 'values' must be a character vector")?
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect();
+
+                let default = list
+                    .iter()
+                    .find(|(name, _)| *name == "default")
+                    .and_then(|(_, robj)| robj.as_str())
+                    .map(|s| s.to_string());
+
+                Ok(Schema::Enum {
+                    values,
+                    required,
+                    default,
+                })
             }
             "date" => {
                 let default = list
@@ -329,7 +407,7 @@ impl Schema {
                         });
 
                 Ok(Schema::Date {
-                    optional,
+                    required,
                     default,
                     format,
                 })
@@ -360,13 +438,13 @@ impl Schema {
                     .to_string();
 
                 Ok(Schema::Timestamp {
-                    optional,
+                    required,
                     default,
                     format,
                     tz,
                 })
             }
-            "any" => Ok(Schema::Any { optional }),
+            "any" => Ok(Schema::Any { required }),
             "array" => {
                 let items_robj = list
                     .iter()
@@ -376,7 +454,7 @@ impl Schema {
                 let items = Schema::from_robj(&items_robj)?;
                 Ok(Schema::Array {
                     items: Box::new(items),
-                    optional,
+                    required,
                 })
             }
             "object" => {
@@ -395,7 +473,7 @@ impl Schema {
                     fields.insert(name.to_string(), schema);
                 }
 
-                Ok(Schema::Object { fields, optional })
+                Ok(Schema::Object { fields, required })
             }
             _ => Err(format!("Unknown schema type: {}", schema_type)),
         }
@@ -405,9 +483,9 @@ impl Schema {
     pub fn apply(&self, value: &Value) -> StdResult<Robj, String> {
         // Handle null values
         if value.is_null() {
-            return match self.is_optional() {
-                true => Ok(r!(NULL)),
-                false => Err("Value is null but schema requires non-null".to_string()),
+            return match self.is_required() {
+                true => Err("Value is null but schema requires non-null".to_string()),
+                false => Ok(r!(NULL)),
             };
         }
 
@@ -512,6 +590,29 @@ impl Schema {
                     }
                     Value::Null => Ok(Robj::from(false)),
                     _ => Err(format!("Cannot convert {:?} to boolean", value)),
+                }
+            }
+            Schema::Enum { values, .. } => {
+                // Get the string value
+                let str_value = if let Some(s) = value.as_str() {
+                    s.to_string()
+                } else {
+                    // Try to coerce to string
+                    match value {
+                        Value::Number(n) => n.to_string(),
+                        Value::Bool(b) => b.to_string(),
+                        _ => return Err(format!("Cannot convert {:?} to enum value", value)),
+                    }
+                };
+
+                // Validate that the value is in the allowed list
+                if values.contains(&str_value) {
+                    Ok(Robj::from(str_value.as_str()))
+                } else {
+                    Err(format!(
+                        "Value '{}' is not one of the allowed enum values: {:?}",
+                        str_value, values
+                    ))
                 }
             }
             Schema::Date { format, .. } => {
@@ -770,10 +871,7 @@ impl Schema {
                 }
                 None => {
                     // Field is missing from input JSON
-                    if field_schema.is_optional() {
-                        // Optional field and not in input - omit it entirely from output
-                        // (don't add to names/values)
-                    } else {
+                    if field_schema.is_required() {
                         // Required field - add default value (or NULL if no default)
                         names.push(field_name.as_str());
                         let default_robj = field_schema.get_default();
@@ -782,6 +880,9 @@ impl Schema {
                         } else {
                             values.push(r!(NULL));
                         }
+                    } else {
+                        // Optional field and not in input - omit it entirely from output
+                        // (don't add to names/values)
                     }
                 }
             }
@@ -792,18 +893,19 @@ impl Schema {
         Ok(list.into_robj())
     }
 
-    /// Check if this schema allows null values
-    fn is_optional(&self) -> bool {
+    /// Check if this schema is required (does not allow null values)
+    fn is_required(&self) -> bool {
         match self {
-            Schema::Integer { optional, .. }
-            | Schema::Number { optional, .. }
-            | Schema::String { optional, .. }
-            | Schema::Boolean { optional, .. }
-            | Schema::Date { optional, .. }
-            | Schema::Timestamp { optional, .. }
-            | Schema::Array { optional, .. }
-            | Schema::Object { optional, .. }
-            | Schema::Any { optional } => *optional,
+            Schema::Integer { required, .. }
+            | Schema::Number { required, .. }
+            | Schema::String { required, .. }
+            | Schema::Boolean { required, .. }
+            | Schema::Enum { required, .. }
+            | Schema::Date { required, .. }
+            | Schema::Timestamp { required, .. }
+            | Schema::Array { required, .. }
+            | Schema::Object { required, .. }
+            | Schema::Any { required } => *required,
         }
     }
 
@@ -814,6 +916,7 @@ impl Schema {
             Schema::Number { default, .. } => default.map(|v| Robj::from(v)),
             Schema::String { default, .. } => default.as_ref().map(|v| Robj::from(v.as_str())),
             Schema::Boolean { default, .. } => default.map(|v| Robj::from(v)),
+            Schema::Enum { default, .. } => default.as_ref().map(|v| Robj::from(v.as_str())),
             Schema::Date { default, .. } => {
                 default.as_ref().and_then(|date_str| {
                     // Parse date string and create R Date object
@@ -847,16 +950,16 @@ impl Schema {
                             new_obj.insert(field_name.clone(), processed);
                         } else {
                             // Field is missing from input JSON
-                            if field_schema.is_optional() {
-                                // Optional field and not in input - omit it entirely from output
-                                // (don't add to new_obj)
-                            } else {
+                            if field_schema.is_required() {
                                 // Required field - add default value (or null if no default)
                                 let default_value = match field_schema.get_default_json() {
                                     Some(v) => v,
                                     None => Value::Null,
                                 };
                                 new_obj.insert(field_name.clone(), default_value);
+                            } else {
+                                // Optional field and not in input - omit it entirely from output
+                                // (don't add to new_obj)
                             }
                         }
                     }
@@ -890,6 +993,10 @@ impl Schema {
             Schema::Boolean { .. } => {
                 // Coerce to boolean
                 self.coerce_to_boolean(value)
+            }
+            Schema::Enum { .. } => {
+                // Coerce to enum (validate)
+                self.coerce_to_enum(value)
             }
             Schema::Date { .. } | Schema::Timestamp { .. } => {
                 // For date types in apply_defaults, just return the value as-is
@@ -1010,6 +1117,35 @@ impl Schema {
         }
     }
 
+    /// Coerce a JSON value to enum (validate against allowed values)
+    fn coerce_to_enum(&self, value: &Value) -> StdResult<Value, String> {
+        if let Schema::Enum { values, .. } = self {
+            // Get the string value
+            let str_value = if let Some(s) = value.as_str() {
+                s.to_string()
+            } else {
+                // Try to coerce to string
+                match value {
+                    Value::Number(n) => n.to_string(),
+                    Value::Bool(b) => b.to_string(),
+                    _ => return Err(format!("Cannot convert {:?} to enum value", value)),
+                }
+            };
+
+            // Validate that the value is in the allowed list
+            if values.contains(&str_value) {
+                Ok(Value::String(str_value))
+            } else {
+                Err(format!(
+                    "Value '{}' is not one of the allowed enum values: {:?}",
+                    str_value, values
+                ))
+            }
+        } else {
+            Err("coerce_to_enum called on non-enum schema".to_string())
+        }
+    }
+
     /// Get the default value as a JSON Value
     fn get_default_json(&self) -> Option<Value> {
         match self {
@@ -1019,6 +1155,7 @@ impl Schema {
             }
             Schema::String { default, .. } => default.as_ref().map(|v| Value::String(v.clone())),
             Schema::Boolean { default, .. } => default.map(|v| Value::Bool(v)),
+            Schema::Enum { default, .. } => default.as_ref().map(|v| Value::String(v.clone())),
             Schema::Date { default, .. } => default.as_ref().map(|v| Value::String(v.clone())),
             Schema::Timestamp { default, .. } => {
                 default.and_then(|v| serde_json::Number::from_f64(v).map(Value::Number))

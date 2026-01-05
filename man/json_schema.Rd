@@ -2,15 +2,27 @@
 % Please edit documentation in R/schema.R
 \name{json_schema}
 \alias{json_schema}
+\alias{json_schema.LLMJsonSchema}
+\alias{json_schema.Type}
 \title{Build a compiled schema for efficient reuse}
 \usage{
-json_schema(schema)
+json_schema(schema, ...)
+
+\method{json_schema}{LLMJsonSchema}(schema, ...)
+
+\method{json_schema}{Type}(schema, ...)
 }
 \arguments{
-\item{schema}{A schema definition created with json_object(), json_integer(), etc.}
+\item{schema}{A schema definition. Can be:
+\itemize{
+\item An LLMJsonSchema object created with json_object(), json_integer(), etc.
+\item An ellmer Type object (TypeBasic, TypeEnum, TypeArray, TypeObject, etc.)
+}}
+
+\item{...}{Additional arguments passed to methods}
 }
 \value{
-A built schema object (external pointer) that can be passed to
+A LLMJsonSchemaBuilt object (external pointer) that can be passed to
 repair_json_str(), repair_json_file(), or repair_json_raw()
 }
 \description{
@@ -19,8 +31,17 @@ representation that can be reused across multiple JSON repair operations.
 This dramatically improves performance when repairing many JSON strings
 with the same schema, as the schema only needs to be parsed once.
 }
+\details{
+The function is a generic that supports:
+\itemize{
+\item \strong{LLMJsonSchema objects}: Created with \code{json_object()},
+\code{json_integer()}, etc.
+\item \strong{ellmer Type objects}: Automatically converted from ellmer's
+type system (requires ellmer package)
+}
+}
 \examples{
-# Create a schema
+# Create a schema using llmjson functions
 schema <- json_object(
   name = json_string(),
   age = json_integer(),
@@ -33,7 +54,28 @@ built_schema <- json_schema(schema)
 # Reuse many times - much faster than rebuilding each time!
 repair_json_str('{"name": "Alice", "age": 30}', built_schema)
 repair_json_str('{"name": "Bob", "age": 25}', built_schema)
+
+\dontrun{
+# Convert from ellmer types (requires ellmer package)
+library(ellmer)
+
+user_type <- type_object(
+  name = type_string(required = TRUE),
+  age = type_integer(),
+  status = type_enum(c("active", "inactive"), required = TRUE)
+)
+
+# Automatically converts ellmer type to llmjson schema
+built_schema <- json_schema(user_type)
+
+repair_json_str(
+  '{"name": "Alice", "age": 30, "status": "active"}',
+  schema = built_schema,
+  return_objects = TRUE
+)
+}
 }
 \seealso{
-\code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{schema}}
+\code{\link[=repair_json_str]{repair_json_str()}}, \code{\link[=repair_json_file]{repair_json_file()}},
+\code{\link[=repair_json_raw]{repair_json_raw()}}, \code{\link[=repair_json_conn]{repair_json_conn()}}, \code{\link[=schema]{schema()}}
 }
