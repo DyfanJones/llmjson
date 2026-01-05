@@ -207,3 +207,12 @@ test_that("repair_json_file parses array with unquoted multi-word values", {
     )
   )
 })
+
+
+test_that("repair_json_file produces identical output for valid and invalid JSON", {
+  expect_equal(repair_json_file("invalid.json"), repair_json_file("valid.json"))
+  expect_equal(
+    repair_json_file("invalid.json", return_objects = TRUE),
+    repair_json_file("valid.json", return_objects = TRUE)
+  )
+})
