@@ -14,6 +14,7 @@
 #' @return A schema definition object
 #' @name schema
 #' @rdname schema
+#' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{json_schema}}
 #' @export
 #' @examples
 #' # Basic types
@@ -236,6 +237,7 @@ print.LLMJsonSchema <- function(x, ...) {
 #' @param schema A schema definition created with json_object(), json_integer(), etc.
 #' @return A built schema object (external pointer) that can be passed to
 #'   repair_json_str(), repair_json_file(), or repair_json_raw()
+#' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{schema}}
 #' @export
 #' @examples
 #' # Create a schema

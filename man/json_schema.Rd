@@ -34,3 +34,6 @@ built_schema <- json_schema(schema)
 repair_json_str('{"name": "Alice", "age": 30}', built_schema)
 repair_json_str('{"name": "Bob", "age": 25}', built_schema)
 }
+\seealso{
+\code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{schema}}
+}

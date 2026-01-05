@@ -89,3 +89,6 @@ json_object(
   created_at = json_timestamp(.format = "iso8601z", .tz = "UTC")
 )
 }
+\seealso{
+\code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, #' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{json_schema}}
+}

@@ -36,3 +36,6 @@ repair_json_file("malformed.json", return_objects = TRUE)
 repair_json_file("data.json", return_objects = TRUE, int64 = "string")  # Preserve large integers
 }
 }
+\seealso{
+\code{\link{repair_json_str}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{schema}}, \code{\link{json_schema}}
+}
