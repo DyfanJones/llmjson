@@ -234,7 +234,7 @@ test_that("schema with return_objects validates and converts types", {
 test_that("schema omits missing optional fields even with defaults (return_objects = TRUE)", {
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.optional = TRUE, .default = 0L)
+    age = json_integer(.default = 0L, .optional = TRUE)
   )
 
   result <- repair_json_str(
@@ -250,7 +250,7 @@ test_that("schema omits missing optional fields even with defaults (return_objec
 test_that("schema omits missing optional fields even with defaults (return_objects = FALSE)", {
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.optional = TRUE, .default = 0L)
+    age = json_integer(.default = 0L, .optional = TRUE)
   )
 
   result <- repair_json_str(
@@ -555,7 +555,7 @@ test_that("schema works with repair_json_file", {
 
   schema <- json_object(
     name = json_string(),
-    age = json_integer(.optional = TRUE, .default = 25L)
+    age = json_integer(.default = 25L, .optional = TRUE)
   )
 
   result <- repair_json_file(tmp_file, schema = schema, return_objects = TRUE)
@@ -570,7 +570,7 @@ test_that("schema works with repair_json_raw", {
 
   schema <- json_object(
     name = json_string(),
-    active = json_boolean(.optional = TRUE, .default = TRUE)
+    active = json_boolean(.default = TRUE, .optional = TRUE)
   )
 
   result <- repair_json_raw(raw_data, schema = schema, return_objects = TRUE)

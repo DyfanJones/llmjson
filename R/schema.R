@@ -4,23 +4,46 @@
 #' conversion to R objects. Schemas ensure that the repaired JSON conforms
 #' to expected types and structure.
 #'
-#' @name schema_builders
-#' @rdname schema_builders
-NULL
-
-#' Create a schema for a JSON object/map
-#'
-#' @param ... Named arguments defining the schema for each field.
-#'   Each argument should be a schema builder (json_integer, json_number, json_string, etc.)
-#' @param .optional Logical; if TRUE, this object can be null
+#' @param ... Named arguments defining the schema for each field (json_object only)
+#' @param items Schema definition for array elements (json_array only)
+#' @param .optional Logical; if TRUE, will use default value.
+#' @param .default Default value to use when field is missing. Only applies to
+#'   required fields (.optional = FALSE)
+#' @param .format Format string(s) for parsing dates/timestamps (json_date/json_timestamp only)
+#' @param .tz Timezone to use for parsing timestamps (json_timestamp only). Defaults to "UTC"
 #' @return A schema definition object
+#' @name schema
+#' @rdname schema
 #' @export
 #' @examples
-#' # Define a schema for a user object
+#' # Basic types
+#' json_string()
+#' json_integer()
+#' json_number()
+#' json_boolean()
+#' json_any()
+#'
+#' # Object with fields
 #' schema <- json_object(
 #'   name = json_string(),
 #'   age = json_integer(),
 #'   email = json_string()
+#' )
+#'
+#' # Array of integers
+#' json_array(json_integer())
+#'
+#' # Optional fields with defaults
+#' json_object(
+#'   name = json_string(),
+#'   age = json_integer(.default = 0L, .optional = TRUE),
+#'   active = json_boolean(.default = TRUE)
+#' )
+#'
+#' # Date and timestamp handling
+#' json_object(
+#'   birthday = json_date(.format = "us_date"),
+#'   created_at = json_timestamp(.format = "iso8601z", .tz = "UTC")
 #' )
 json_object <- function(..., .optional = FALSE) {
   fields <- list(...)
@@ -43,19 +66,9 @@ json_object <- function(..., .optional = FALSE) {
   )
 }
 
-#' Create a schema for an integer value
-#'
-#' @param .optional Logical; if TRUE, this value can be null and a missing field
-#'   will not cause an error
-#' @param .default Default value to use when field is missing. Only applies to
-#'   required fields (.optional = FALSE). Must be a single integer value (e.g., 0L, 1L)
-#' @return A schema definition object
+#' @rdname schema
 #' @export
-#' @examples
-#' json_integer()
-#' json_integer(.optional = TRUE)
-#' json_integer(.optional = TRUE, .default = 0L)
-json_integer <- function(.optional = FALSE, .default = NULL) {
+json_integer <- function(.default = NULL, .optional = FALSE) {
   schema <- list(
     type = "integer",
     optional = .optional
@@ -71,19 +84,9 @@ json_integer <- function(.optional = FALSE, .default = NULL) {
   structure(schema, class = "LLMJsonSchema")
 }
 
-#' Create a schema for a double/numeric value
-#'
-#' @param .optional Logical; if TRUE, this value can be null and a missing field
-#'   will not cause an error
-#' @param .default Default value to use when field is missing. Only applies to
-#'   required fields (.optional = FALSE). Must be a single numeric value (e.g., 0.0, 1.5)
-#' @return A schema definition object
+#' @rdname schema
 #' @export
-#' @examples
-#' json_number()
-#' json_number(.optional = TRUE)
-#' json_number(.optional = TRUE, .default = 0.0)
-json_number <- function(.optional = FALSE, .default = NULL) {
+json_number <- function(.default = NULL, .optional = FALSE) {
   schema <- list(
     type = "number",
     optional = .optional
@@ -99,19 +102,9 @@ json_number <- function(.optional = FALSE, .default = NULL) {
   structure(schema, class = "LLMJsonSchema")
 }
 
-#' Create a schema for a string value
-#'
-#' @param .optional Logical; if TRUE, this value can be null and a missing field
-#'   will not cause an error
-#' @param .default Default value to use when field is missing. Only applies to
-#'   required fields (.optional = FALSE). Must be a single character value (e.g., "", "unknown")
-#' @return A schema definition object
+#' @rdname schema
 #' @export
-#' @examples
-#' json_string()
-#' json_string(.optional = TRUE)
-#' json_string(.optional = TRUE, .default = "")
-json_string <- function(.optional = FALSE, .default = NULL) {
+json_string <- function(.default = NULL, .optional = FALSE) {
   schema <- list(
     type = "string",
     optional = .optional
@@ -127,19 +120,9 @@ json_string <- function(.optional = FALSE, .default = NULL) {
   structure(schema, class = "LLMJsonSchema")
 }
 
-#' Create a schema for a logical/boolean value
-#'
-#' @param .optional Logical; if TRUE, this value can be null and a missing field
-#'   will not cause an error
-#' @param .default Default value to use when field is missing. Only applies to
-#'   required fields (.optional = FALSE). Must be a single logical value (TRUE or FALSE)
-#' @return A schema definition object
+#' @rdname schema
 #' @export
-#' @examples
-#' json_boolean()
-#' json_boolean(.optional = TRUE)
-#' json_boolean(.optional = TRUE, .default = FALSE)
-json_boolean <- function(.optional = FALSE, .default = NULL) {
+json_boolean <- function(.default = NULL, .optional = FALSE) {
   schema <- list(
     type = "boolean",
     optional = .optional
@@ -155,21 +138,8 @@ json_boolean <- function(.optional = FALSE, .default = NULL) {
   structure(schema, class = "LLMJsonSchema")
 }
 
-#' Create a schema for an array/vector
-#'
-#' @param items Schema definition for array elements
-#' @param .optional Logical; if TRUE, this array can be null
-#' @return A schema definition object
+#' @rdname schema
 #' @export
-#' @examples
-#' # Array of integers
-#' json_array(json_integer())
-#'
-#' # Array of user objects
-#' json_array(json_object(
-#'   name = json_string(),
-#'   age = json_integer()
-#' ))
 json_array <- function(items, .optional = FALSE) {
   if (!inherits(items, "LLMJsonSchema")) {
     stop("items must be a schema definition created with json_* functions")
@@ -185,13 +155,8 @@ json_array <- function(items, .optional = FALSE) {
   )
 }
 
-#' Create a schema that allows any type
-#'
-#' @param .optional Logical; if TRUE, this value can be null
-#' @return A schema definition object
+#' @rdname schema
 #' @export
-#' @examples
-#' json_any()
 json_any <- function(.optional = FALSE) {
   structure(
     list(
@@ -202,31 +167,9 @@ json_any <- function(.optional = FALSE) {
   )
 }
 
-#' Create a schema for a Date value
-#'
-#' This schema parses date strings from JSON into R Date objects. It supports
-#' both named format presets and custom strptime format strings.
-#'
-#' @param .optional Logical; if TRUE, this value can be null and a missing field
-#'   will not cause an error
-#' @param .default Default value to use when field is missing. Only applies to
-#'   required fields (.optional = FALSE). Must be a single Date object (e.g., Sys.Date(), as.Date("2024-01-01"))
-#' @param .format Character vector specifying date format(s). Can be:
-#'   - A named format: "iso8601" (`%Y-%m-%d`), "us_date" (`%m/%d/%Y`),
-#'     "eu_date" (`%d/%m/%Y`)
-#'   - A custom strptime format string (e.g., `"%d-%m-%Y"`)
-#'   - A vector of formats to try in order
-#'
-#'   Defaults to "iso8601" (`%Y-%m-%d`)
-#' @return A schema definition object
+#' @rdname schema
 #' @export
-#' @examples
-#' json_date()
-#' json_date(.optional = TRUE)
-#' json_date(.format = "us_date")
-#' json_date(.format = "%d-%m-%Y")
-#' json_date(.format = c("iso8601", "us_date"))
-json_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
+json_date <- function(.default = NULL, .format = "iso8601", .optional = FALSE) {
   schema <- list(
     type = "date",
     optional = .optional
@@ -248,42 +191,13 @@ json_date <- function(.optional = FALSE, .default = NULL, .format = "iso8601") {
   structure(schema, class = "LLMJsonSchema")
 }
 
-#' Create a schema for a POSIXct datetime value
-#'
-#' This schema parses datetime strings from JSON into R POSIXct objects. It supports
-#' both named format presets and custom strptime format strings, as well as numeric
-#' Unix timestamps.
-#'
-#' @param .optional Logical; if TRUE, this value can be null and a missing field
-#'   will not cause an error
-#' @param .default Default value to use when field is missing. Only applies to
-#'   required fields (.optional = FALSE). Must be a single POSIXct object (e.g., Sys.time(), as.POSIXct("2024-01-01 12:00:00"))
-#' @param .format Character vector specifying datetime format(s). Can be:
-#'   - A named format: "iso8601" (`%Y-%m-%dT%H:%M:%S`),
-#'     "iso8601z" (`%Y-%m-%dT%H:%M:%SZ`), "rfc822" (`%a, %d %b %Y %H:%M:%S`),
-#'     "us_datetime" (`%m/%d/%Y %H:%M:%S`), "eu_datetime" (`%d/%m/%Y %H:%M:%S`)
-#'   - "unix" or "epoch" to parse numeric Unix timestamps (seconds since 1970-01-01)
-#'   - "unix_ms" to parse millisecond timestamps
-#'   - A custom strptime format string
-#'   - A vector of formats to try in order
-#'
-#'   Defaults to "iso8601" (`%Y-%m-%dT%H:%M:%S`)
-#' @param .tz Timezone to use for parsing. Defaults to "UTC"
-#' @return A schema definition object
-#' @name json_timestamp
+#' @rdname schema
 #' @export
-#' @examples
-#' json_timestamp()
-#' json_timestamp(.optional = TRUE)
-#' json_timestamp(.format = "iso8601z")
-#' json_timestamp(.format = "unix")
-#' json_timestamp(.format = c("iso8601", "iso8601z"))
-#' json_timestamp(.tz = "America/New_York")
 json_timestamp <- function(
-  .optional = FALSE,
   .default = NULL,
   .format = "iso8601",
-  .tz = "UTC"
+  .tz = "UTC",
+  .optional = FALSE
 ) {
   schema <- list(
     type = "timestamp",
