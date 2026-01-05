@@ -90,10 +90,10 @@ Define schemas to validate JSON structure and ensure correct R types. The schema
 
 ``` r
 # Define a schema for a user object
-schema <- s_map(
-  name = s_string(),
-  age = s_integer(),
-  email = s_string()
+schema <- json_object(
+  name = json_string(),
+  age = json_integer(),
+  email = json_string()
 )
 
 # Repair and validate with schema
@@ -125,9 +125,9 @@ Control how missing fields are handled with `.optional` and `.default` parameter
 
 ``` r
 # Example 1: Required field with default
-schema <- s_map(
-  name = s_string(),
-  age = s_integer(.default = 25L)  # required, will use default if missing
+schema <- json_object(
+  name = json_string(),
+  age = json_integer(.default = 25L)  # required, will use default if missing
 )
 
 result <- repair_json_str('{"name": "Alice"}', schema = schema, return_objects = TRUE)
@@ -139,9 +139,9 @@ result
 #> [1] 25
 
 # Example 2: Optional field (omitted when missing)
-schema <- s_map(
-  name = s_string(),
-  nickname = s_string(.optional = TRUE)  # optional, omitted if not in input
+schema <- json_object(
+  name = json_string(),
+  nickname = json_string(.optional = TRUE)  # optional, omitted if not in input
 )
 
 result <- repair_json_str('{"name": "Bob"}', schema = schema, return_objects = TRUE)
@@ -151,9 +151,9 @@ result
 # Note: nickname is not present since it was optional and missing from input
 
 # Example 3: Required field without default (gets null)
-schema <- s_map(
-  name = s_string(),
-  email = s_string()  # required, no default specified
+schema <- json_object(
+  name = json_string(),
+  email = json_string()  # required, no default specified
 )
 
 result <- repair_json_str('{"name": "Charlie"}', schema = schema, return_objects = TRUE)
@@ -171,13 +171,13 @@ Build complex schemas with nested objects and arrays:
 
 ``` r
 # Schema with nested object and array
-schema <- s_map(
-  name = s_string(),
-  address = s_map(
-    city = s_string(),
-    zip = s_integer()
+schema <- json_object(
+  name = json_string(),
+  address = json_object(
+    city = json_string(),
+    zip = json_integer()
   ),
-  scores = s_array(s_integer())
+  scores = json_array(json_integer())
 )
 
 json_str <- '{
@@ -199,18 +199,18 @@ str(result)
 
 ### Build Schemas for Better Performance
 
-For repeated use with the same schema, use `build_schema()` to compile the schema once and reuse it many times.
+For repeated use with the same schema, use `json_schema()` to compile the schema once and reuse it many times.
 
 ``` r
 # Define your schema
-schema <- s_map(
-  name = s_string(),
-  age = s_integer(),
-  email = s_string()
+schema <- json_object(
+  name = json_string(),
+  age = json_integer(),
+  email = json_string()
 )
 
 # Build it once - this creates an optimized internal representation
-built_schema <- build_schema(schema)
+built_schema <- json_schema(schema)
 
 # Reuse many times - much faster!
 for (json_str in json_strings) {
@@ -220,8 +220,8 @@ for (json_str in json_strings) {
 ```
 
 **Performance comparison** (complex nested schema):
-- Without `build_schema()`: ~266µs per call
-- With `build_schema()`: ~51µs per call (**5.2x faster**)
+- Without `json_schema()`: ~266µs per call
+- With `json_schema()`: ~51µs per call (**5.2x faster**)
 - No schema: ~44µs per call
 
 The performance benefit is especially significant for:
@@ -237,9 +237,9 @@ The performance benefit is especially significant for:
 repair_json_file("malformed.json")
 
 # With schema validation
-schema <- s_map(
-  name = s_string(),
-  age = s_integer(.default = 25L)  # required field with default
+schema <- json_object(
+  name = json_string(),
+  age = json_integer(.default = 25L)  # required field with default
 )
 result <- repair_json_file("data.json", schema = schema, return_objects = TRUE)
 ```
@@ -278,10 +278,10 @@ repaired <- repair_json_str(llm_output)
 #> 2  25   Bob
 
 # Option 2: Use schema with return_objects for type safety
-schema <- s_map(
-  users = s_array(s_map(
-    name = s_string(),
-    age = s_integer()
+schema <- json_object(
+  users = json_array(json_object(
+    name = json_string(),
+    age = json_integer()
   ))
 )
 
@@ -308,22 +308,22 @@ All repair functions support the `schema`, `return_objects`, and `ensure_ascii` 
 - **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE)`** - Repair JSON from a raw byte vector
 
 **Parameters:**
-- `schema` - Optional schema definition (R list from `s_map()`, etc.) or built schema (from `build_schema()`)
+- `schema` - Optional schema definition (R list from `json_object()`, etc.) or built schema (from `json_schema()`)
 - `return_objects` - If `TRUE`, returns R objects instead of JSON strings
 - `ensure_ascii` - If `TRUE` (default), escape non-ASCII characters in the output JSON
 
 ### Schema Functions
 
-- **`build_schema(schema)`** - Compile a schema definition for efficient reuse (5x performance improvement)
-- **`s_map(..., .optional)`** - Define a JSON object with named fields
-- **`s_integer(.optional, .default)`** - Integer field with optional defaults
-- **`s_double(.optional, .default)`** - Double/numeric field with optional defaults
-- **`s_string(.optional, .default)`** - String field with optional defaults
-- **`s_logical(.optional, .default)`** - Logical/boolean field with optional defaults
-- **`s_date(.optional, .default, .format)`** - Date field with format specification
-- **`s_posixct(.optional, .default, .format, .tz)`** / **`s_timestamp()`** - POSIXct datetime field
-- **`s_array(items, .optional)`** - Array with specified item type
-- **`s_any(.optional)`** - Accept any JSON type
+- **`json_schema(schema)`** - Compile a schema definition for efficient reuse (5x performance improvement)
+- **`json_object(..., .optional)`** - Define a JSON object with named fields
+- **`json_integer(.default, .optional)`** - Integer field with optional defaults
+- **`json_number(.default, .optional)`** - Number/numeric field with optional defaults
+- **`json_string(.default, .optional)`** - String field with optional defaults
+- **`json_boolean(.default, .optional)`** - Boolean field with optional defaults
+- **`json_date(.default, .format, .optional)`** - Date field with format specification
+- **`json_timestamp(.default, .format, .tz, .optional)`** - POSIXct datetime field
+- **`json_array(items, .optional)`** - Array with specified item type
+- **`json_any(.optional)`** - Accept any JSON type
 
 ## Comparison with Similar Packages
 
