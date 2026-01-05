@@ -10,7 +10,7 @@
 #' @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
 #' @param int64 Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)
 #' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
-#' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{repair_json_conn}}, \code{\link{repair_json_raw}}, \code{\link{schema}}, \code{\link{json_schema}}
+#' @seealso \code{\link{repair_json_str}}, \code{\link{repair_json_file}}, \code{\link{repair_json_raw}}, \code{\link{schema}}, \code{\link{json_schema}}
 #' @export
 #' @examples
 #' \dontrun{
