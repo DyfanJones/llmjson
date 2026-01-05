@@ -74,12 +74,10 @@ json_integer <- function(.default = 0L, .optional = FALSE) {
     optional = .optional
   )
 
-  if (!is.null(.default)) {
-    if (!is.numeric(.default) || length(.default) != 1) {
-      stop(".default for json_integer must be a single numeric value")
-    }
-    schema$default <- as.integer(.default)
+  if (!is.numeric(.default) || length(.default) != 1) {
+    stop(".default for json_integer must be a single numeric value")
   }
+  schema$default <- as.integer(.default)
 
   structure(schema, class = "LLMJsonSchema")
 }
@@ -92,12 +90,10 @@ json_number <- function(.default = 0.0, .optional = FALSE) {
     optional = .optional
   )
 
-  if (!is.null(.default)) {
-    if (!is.numeric(.default) || length(.default) != 1) {
-      stop(".default for json_number must be a single numeric value")
-    }
-    schema$default <- as.numeric(.default)
+  if (!is.numeric(.default) || length(.default) != 1) {
+    stop(".default for json_number must be a single numeric value")
   }
+  schema$default <- as.numeric(.default)
 
   structure(schema, class = "LLMJsonSchema")
 }
@@ -110,12 +106,10 @@ json_string <- function(.default = "", .optional = FALSE) {
     optional = .optional
   )
 
-  if (!is.null(.default)) {
-    if (!is.character(.default) || length(.default) != 1) {
-      stop(".default for json_string must be a single character value")
-    }
-    schema$default <- .default
+  if (!is.character(.default) || length(.default) != 1) {
+    stop(".default for json_string must be a single character value")
   }
+  schema$default <- .default
 
   structure(schema, class = "LLMJsonSchema")
 }
