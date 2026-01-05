@@ -287,6 +287,34 @@ repair_json_raw(raw_data)
 result <- repair_json_raw(raw_data, return_objects = TRUE)
 ```
 
+### Repair JSON from Connections
+
+Read and repair JSON from any R connection (files, URLs, pipes, compressed files, etc.):
+
+``` r
+# Read from a file connection
+conn <- file("malformed.json", "r")
+result <- repair_json_conn(conn)
+close(conn)
+
+# Read from a URL
+conn <- url("https://api.example.com/data.json")
+result <- repair_json_conn(conn, return_objects = TRUE)
+close(conn)
+
+# Read from a compressed file
+conn <- gzfile("data.json.gz", "r")
+result <- repair_json_conn(conn, return_objects = TRUE, int64 = "string")
+close(conn)
+
+# Use with() to ensure connection is closed automatically
+result <- local({
+  conn <- file("malformed.json", "r")
+  on.exit(close(conn))
+  repair_json_conn(conn, return_objects = TRUE)
+})
+```
+
 ## Use Case: Working with LLM Outputs
 
 Large Language Models often generate JSON that is almost correct but has minor syntax errors. This package helps you handle those cases gracefully:
@@ -337,6 +365,7 @@ All repair functions support the `schema`, `return_objects`, `ensure_ascii`, and
 - **`repair_json_str(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double")`** - Repair a malformed JSON string
 - **`repair_json_file(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double")`** - Read and repair JSON from a file
 - **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double")`** - Repair JSON from a raw byte vector
+- **`repair_json_conn(conn, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double")`** - Read and repair JSON from an R connection (file, URL, pipe, etc.)
 
 **Parameters:**
 - `schema` - Optional schema definition (R list from `json_object()`, etc.) or built schema (from `json_schema()`)

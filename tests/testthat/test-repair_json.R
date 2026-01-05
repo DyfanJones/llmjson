@@ -895,3 +895,119 @@ test_that("int64 parameter works with repair_json_raw", {
   expect_equal(class(result$big), "integer64")
   expect_equal(format(result$big), "9007199254740993")
 })
+
+# Tests for repair_json_conn
+test_that("repair_json_conn reads and repairs JSON from connection", {
+  # Create a temporary file with malformed JSON
+  tmp_file <- tempfile(fileext = ".json")
+  writeLines('{"key": "value",}', tmp_file)
+  
+  # Open connection and repair
+  conn <- file(tmp_file, "r")
+  result <- repair_json_conn(conn)
+  close(conn)
+  
+  expect_type(result, "character")
+  expect_true(grepl('"key"', result))
+  expect_true(grepl('"value"', result))
+  expect_false(grepl(',}', result))
+  
+  # Clean up
+  unlink(tmp_file)
+})
+
+test_that("repair_json_conn works with return_objects = TRUE", {
+  tmp_file <- tempfile(fileext = ".json")
+  writeLines('{"name": "Alice", "age": 30}', tmp_file)
+  
+  conn <- file(tmp_file, "r")
+  result <- repair_json_conn(conn, return_objects = TRUE)
+  close(conn)
+  
+  expect_type(result, "list")
+  expect_equal(result$name, "Alice")
+  expect_equal(result$age, 30)
+  
+  unlink(tmp_file)
+})
+
+test_that("repair_json_conn works with schema", {
+  tmp_file <- tempfile(fileext = ".json")
+  writeLines('{"name": "Bob"}', tmp_file)
+  
+  schema <- json_object(
+    name = json_string(),
+    age = json_integer(.default = 25L)
+  )
+  
+  conn <- file(tmp_file, "r")
+  result <- repair_json_conn(conn, schema = schema, return_objects = TRUE)
+  close(conn)
+  
+  expect_equal(result$name, "Bob")
+  expect_equal(result$age, 25)
+  
+  unlink(tmp_file)
+})
+
+test_that("repair_json_conn handles int64 parameter", {
+  skip_if_not_installed("bit64")
+  
+  tmp_file <- tempfile(fileext = ".json")
+  writeLines('{"big": 9007199254740993}', tmp_file)
+  
+  conn <- file(tmp_file, "r")
+  result <- repair_json_conn(conn, return_objects = TRUE, int64 = "bit64")
+  close(conn)
+  
+  expect_equal(class(result$big), "integer64")
+  expect_equal(format(result$big), "9007199254740993")
+  
+  unlink(tmp_file)
+})
+
+test_that("repair_json_conn handles multiline JSON", {
+  tmp_file <- tempfile(fileext = ".json")
+  writeLines(c(
+    '{',
+    '  "users": [',
+    '    {"name": "Alice", "age": 30,},',
+    '    {"name": "Bob", "age": 25,}',
+    '  ],',
+    '}'
+  ), tmp_file)
+  
+  conn <- file(tmp_file, "r")
+  result <- repair_json_conn(conn, return_objects = TRUE)
+  close(conn)
+  
+  expect_type(result, "list")
+  expect_length(result$users, 2)
+  expect_equal(result$users[[1]]$name, "Alice")
+  expect_equal(result$users[[2]]$name, "Bob")
+  
+  unlink(tmp_file)
+})
+
+test_that("repair_json_conn fails with non-connection input", {
+  expect_error(
+    repair_json_conn("not a connection"),
+    "must be a connection object"
+  )
+})
+
+test_that("repair_json_conn uses optimized readChar for binary connections", {
+  tmp_file <- tempfile(fileext = ".json")
+  writeLines('{"name": "Alice", "age": 30}', tmp_file)
+  
+  # Open as binary connection
+  conn <- file(tmp_file, "rb")
+  result <- repair_json_conn(conn, return_objects = TRUE)
+  close(conn)
+  
+  expect_type(result, "list")
+  expect_equal(result$name, "Alice")
+  expect_equal(result$age, 30)
+  
+  unlink(tmp_file)
+})
