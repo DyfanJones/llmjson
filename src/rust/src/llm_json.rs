@@ -62,6 +62,23 @@ pub enum JsonRepairError {
     Utf8Error(#[from] std::str::Utf8Error),
 }
 
+/// Policy for handling 64-bit integers that exceed i32 range
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Int64Policy {
+    /// Convert to string (preserves exact value)
+    String,
+    /// Convert to f64 (may lose precision for large values)
+    Double,
+    /// Store as integer64 using bit64 package (requires bit64)
+    Bit64,
+}
+
+impl Default for Int64Policy {
+    fn default() -> Self {
+        Int64Policy::Double
+    }
+}
+
 /// Configuration options for JSON repair
 #[derive(Debug, Clone)]
 pub struct RepairOptions {
@@ -73,6 +90,8 @@ pub struct RepairOptions {
     pub ensure_ascii: bool,
     /// Handle streaming/incomplete JSON
     pub stream_stable: bool,
+    /// Policy for handling 64-bit integers
+    pub int64_policy: Int64Policy,
 }
 
 impl Default for RepairOptions {
@@ -82,6 +101,7 @@ impl Default for RepairOptions {
             return_objects: false,
             ensure_ascii: true,
             stream_stable: false,
+            int64_policy: Int64Policy::default(),
         }
     }
 }

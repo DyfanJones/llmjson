@@ -12,6 +12,7 @@ BugReports: https://github.com/DyfanJones/llmjson/issues
 Depends:
     R (>= 4.2)
 Suggests:
+    bit64,
     testthat (>= 3.0.0)
 Config/rextendr/version: 0.4.2.9000
 SystemRequirements: Cargo (Rust's package manager), rustc

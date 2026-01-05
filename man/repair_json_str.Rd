@@ -8,7 +8,8 @@ repair_json_str(
   json_str,
   schema = NULL,
   return_objects = FALSE,
-  ensure_ascii = TRUE
+  ensure_ascii = TRUE,
+  int64 = "double"
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ repair_json_str(
 \item{return_objects}{Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)}
 
 \item{ensure_ascii}{Logical; if TRUE, escape non-ASCII characters}
+
+\item{int64}{Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)}
 }
 \value{
 A character string containing the repaired JSON, or an R object if return_objects is TRUE
@@ -32,4 +35,10 @@ unquoted keys, and other common JSON syntax errors.
 repair_json_str('{"key": "value",}')  # Removes trailing comma
 repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
+
+# Handle large integers (beyond i32 range)
+json_str <- '{"id": 9007199254740993}'
+repair_json_str(json_str, return_objects = TRUE, int64 = "string")  # Preserves as "9007199254740993"
+repair_json_str(json_str, return_objects = TRUE, int64 = "double")  # May lose precision
+repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")   # Requires bit64 package
 }

@@ -20,13 +20,20 @@ NULL
 #' @param schema Optional schema definition for validation and type conversion
 #' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
 #' @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
+#' @param int64 Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)
 #' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
 #' repair_json_str('{"key": "value",}')  # Removes trailing comma
 #' repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 #' repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
-repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_str, json_str, schema, return_objects, ensure_ascii)
+#'
+#' # Handle large integers (beyond i32 range)
+#' json_str <- '{"id": 9007199254740993}'
+#' repair_json_str(json_str, return_objects = TRUE, int64 = "string")  # Preserves as "9007199254740993"
+#' repair_json_str(json_str, return_objects = TRUE, int64 = "double")  # May lose precision
+#' repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")   # Requires bit64 package
+repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double") .Call(wrap__repair_json_str, json_str, schema, return_objects, ensure_ascii, int64)
 
 #' Repair malformed JSON from a file
 #'
@@ -36,14 +43,16 @@ repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ens
 #' @param schema Optional schema definition for validation and type conversion
 #' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
 #' @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
+#' @param int64 Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)
 #' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
 #' \dontrun{
 #' repair_json_file("malformed.json")
 #' repair_json_file("malformed.json", return_objects = TRUE)
+#' repair_json_file("data.json", return_objects = TRUE, int64 = "string")  # Preserve large integers
 #' }
-repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_file, path, schema, return_objects, ensure_ascii)
+repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double") .Call(wrap__repair_json_file, path, schema, return_objects, ensure_ascii, int64)
 
 #' Repair malformed JSON from raw bytes
 #'
@@ -53,6 +62,7 @@ repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure
 #' @param schema Optional schema definition for validation and type conversion
 #' @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
 #' @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
+#' @param int64 Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)
 #' @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 #' @export
 #' @examples
@@ -60,8 +70,9 @@ repair_json_file <- function(path, schema = NULL, return_objects = FALSE, ensure
 #' raw_data <- charToRaw('{"key": "value",}')
 #' repair_json_raw(raw_data)
 #' repair_json_raw(raw_data, return_objects = TRUE)
+#' repair_json_raw(raw_data, return_objects = TRUE, int64 = "bit64")  # Use bit64 for large integers
 #' }
-repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE) .Call(wrap__repair_json_raw, raw_bytes, schema, return_objects, ensure_ascii)
+repair_json_raw <- function(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double") .Call(wrap__repair_json_raw, raw_bytes, schema, return_objects, ensure_ascii, int64)
 
 LLMJsonSchemaBuilt <- new.env(parent = emptyenv())
 

@@ -8,7 +8,7 @@ mod llm_json;
 mod schema;
 
 // Re-export what we need from llm_json
-use llm_json::{from_file, load, loads, RepairOptions};
+use llm_json::{from_file, load, loads, Int64Policy, RepairOptions};
 
 /// Helper function to get a Schema from an Robj (either external pointer or list)
 fn get_schema(schema_robj: &Robj) -> Option<schema::Schema> {
@@ -30,8 +30,8 @@ fn get_schema(schema_robj: &Robj) -> Option<schema::Schema> {
     }
 }
 
-/// Helper functensure_ascii: boolion to apply schema and return R objects
-fn apply_schema_to_robj(value: &Value, schema: &Robj) -> Robj {
+/// Helper function to apply schema and return R objects
+fn apply_schema_to_robj(value: &Value, schema: &Robj, int64_policy: Int64Policy) -> Robj {
     if let Some(s) = get_schema(schema) {
         match s.apply(value) {
             Ok(robj) => robj,
@@ -41,7 +41,7 @@ fn apply_schema_to_robj(value: &Value, schema: &Robj) -> Robj {
         }
     } else {
         // No schema, use generic conversion
-        json_to_r::json_value_to_robj(value)
+        json_to_r::json_value_to_robj(value, int64_policy)
     }
 }
 
@@ -68,9 +68,16 @@ fn apply_schema_to_json_string(value: &Value, schema: &Robj) -> Robj {
     }
 }
 
-fn create_repair_options(ensure_ascii: bool) -> RepairOptions {
+fn create_repair_options(ensure_ascii: bool, int64: &str) -> RepairOptions {
+    let int64_policy = match int64 {
+        "string" => Int64Policy::String,
+        "bit64" => Int64Policy::Bit64,
+        _ => Int64Policy::Double, // default
+    };
+
     RepairOptions {
         ensure_ascii,
+        int64_policy,
         ..Default::default()
     }
 }
@@ -85,25 +92,33 @@ fn create_repair_options(ensure_ascii: bool) -> RepairOptions {
 /// @param schema Optional schema definition for validation and type conversion
 /// @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
 /// @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
+/// @param int64 Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)
 /// @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 /// @export
 /// @examples
 /// repair_json_str('{"key": "value",}')  # Removes trailing comma
 /// repair_json_str('{key: "value"}')     # Adds quotes around unquoted key
 /// repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
+///
+/// # Handle large integers (beyond i32 range)
+/// json_str <- '{"id": 9007199254740993}'
+/// repair_json_str(json_str, return_objects = TRUE, int64 = "string")  # Preserves as "9007199254740993"
+/// repair_json_str(json_str, return_objects = TRUE, int64 = "double")  # May lose precision
+/// repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")   # Requires bit64 package
 #[extendr]
 fn repair_json_str(
     json_str: &str,
     #[default = "NULL"] schema: Robj,
     #[default = "FALSE"] return_objects: bool,
     #[default = "TRUE"] ensure_ascii: bool,
+    #[default = "\"double\""] int64: &str,
 ) -> Robj {
-    let options: RepairOptions = create_repair_options(ensure_ascii);
+    let options: RepairOptions = create_repair_options(ensure_ascii, int64);
 
     match loads(json_str, &options) {
         Ok(value) => {
             if return_objects {
-                apply_schema_to_robj(&value, &schema)
+                apply_schema_to_robj(&value, &schema, options.int64_policy)
             } else {
                 apply_schema_to_json_string(&value, &schema)
             }
@@ -127,12 +142,14 @@ fn repair_json_str(
 /// @param schema Optional schema definition for validation and type conversion
 /// @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
 /// @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
+/// @param int64 Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)
 /// @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 /// @export
 /// @examples
 /// \dontrun{
 /// repair_json_file("malformed.json")
 /// repair_json_file("malformed.json", return_objects = TRUE)
+/// repair_json_file("data.json", return_objects = TRUE, int64 = "string")  # Preserve large integers
 /// }
 #[extendr]
 fn repair_json_file(
@@ -140,6 +157,7 @@ fn repair_json_file(
     #[default = "NULL"] schema: Robj,
     #[default = "FALSE"] return_objects: bool,
     #[default = "TRUE"] ensure_ascii: bool,
+    #[default = "\"double\""] int64: &str,
 ) -> Robj {
     if !Path::new(path).exists() {
         throw_r_error(&format!(
@@ -148,12 +166,12 @@ fn repair_json_file(
         ));
     }
 
-    let options: RepairOptions = create_repair_options(ensure_ascii);
+    let options: RepairOptions = create_repair_options(ensure_ascii, int64);
 
     match from_file(path, &options) {
         Ok(value) => {
             if return_objects {
-                apply_schema_to_robj(&value, &schema)
+                apply_schema_to_robj(&value, &schema, options.int64_policy)
             } else {
                 apply_schema_to_json_string(&value, &schema)
             }
@@ -179,6 +197,7 @@ fn repair_json_file(
 /// @param schema Optional schema definition for validation and type conversion
 /// @param return_objects Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)
 /// @param ensure_ascii Logical; if TRUE, escape non-ASCII characters
+/// @param int64 Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)
 /// @return A character string containing the repaired JSON, or an R object if return_objects is TRUE
 /// @export
 /// @examples
@@ -186,6 +205,7 @@ fn repair_json_file(
 /// raw_data <- charToRaw('{"key": "value",}')
 /// repair_json_raw(raw_data)
 /// repair_json_raw(raw_data, return_objects = TRUE)
+/// repair_json_raw(raw_data, return_objects = TRUE, int64 = "bit64")  # Use bit64 for large integers
 /// }
 #[extendr]
 fn repair_json_raw(
@@ -193,18 +213,19 @@ fn repair_json_raw(
     #[default = "NULL"] schema: Robj,
     #[default = "FALSE"] return_objects: bool,
     #[default = "TRUE"] ensure_ascii: bool,
+    #[default = "\"double\""] int64: &str,
 ) -> Robj {
     if raw_bytes.is_empty() {
         throw_r_error("Empty raw vector provided. Please provide valid JSON bytes.");
     }
 
-    let options: RepairOptions = create_repair_options(ensure_ascii);
+    let options: RepairOptions = create_repair_options(ensure_ascii, int64);
     let cursor = Cursor::new(raw_bytes);
 
     match load(cursor, &options) {
         Ok(value) => {
             if return_objects {
-                apply_schema_to_robj(&value, &schema)
+                apply_schema_to_robj(&value, &schema, options.int64_policy)
             } else {
                 apply_schema_to_json_string(&value, &schema)
             }

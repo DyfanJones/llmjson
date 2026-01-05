@@ -642,8 +642,9 @@ impl Schema {
                 }
             }
             Schema::Any { .. } => {
-                // For 'any', use the generic JSON to R conversion
-                Ok(crate::json_to_r::json_value_to_robj(value))
+                // For 'any', use the generic JSON to R conversion with default policy
+                // When using schema, we respect the schema types, so use Double policy
+                Ok(crate::json_to_r::json_value_to_robj(value, crate::llm_json::Int64Policy::Double))
             }
         }
     }

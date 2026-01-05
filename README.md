@@ -84,6 +84,37 @@ result
 result <- repair_json_file("data.json", return_objects = TRUE)
 ```
 
+### Handling Large Integers (64-bit)
+
+JSON numbers that exceed R's 32-bit integer range (beyond -2,147,483,648 to 2,147,483,647) need special handling. The `int64` parameter controls how these large integers are converted:
+
+``` r
+json_str <- '{"id": 9007199254740993}'
+
+# Option 1: "double" (default) - Convert to R numeric (may lose precision)
+result <- repair_json_str(json_str, return_objects = TRUE, int64 = "double")
+result$id
+#> [1] 9.007199e+15  # Lost precision: actual value is 9007199254740992
+
+# Option 2: "string" - Preserve exact value as character
+result <- repair_json_str(json_str, return_objects = TRUE, int64 = "string")
+result$id
+#> [1] "9007199254740993"  # Exact value preserved
+
+# Option 3: "bit64" - Use bit64 package for true 64-bit integers
+# Requires: install.packages("bit64")
+result <- repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")
+result$id
+#> integer64
+#> [1] 9007199254740993  # Exact value preserved with integer type
+```
+
+**Which option should I use?**
+
+- Use `"double"` (default) if your integers fit safely in double precision and you don't need exact integer arithmetic
+- Use `"string"` if you need to preserve exact values and plan to pass them to other systems
+- Use `"bit64"` if you need exact integer arithmetic on large integers in R
+
 ### Schema Validation and Type Conversion
 
 Define schemas to validate JSON structure and ensure correct R types. The schema system is inspired by the [structr](https://github.com/ixpantia/structr) package and provides an intuitive way to define expected JSON structures:
@@ -301,16 +332,17 @@ str(result)
 
 ### Repair Functions
 
-All repair functions support the `schema`, `return_objects`, and `ensure_ascii` parameters:
+All repair functions support the `schema`, `return_objects`, `ensure_ascii`, and `int64` parameters:
 
-- **`repair_json_str(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE)`** - Repair a malformed JSON string
-- **`repair_json_file(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE)`** - Read and repair JSON from a file
-- **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE)`** - Repair JSON from a raw byte vector
+- **`repair_json_str(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double")`** - Repair a malformed JSON string
+- **`repair_json_file(path, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double")`** - Read and repair JSON from a file
+- **`repair_json_raw(raw_bytes, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double")`** - Repair JSON from a raw byte vector
 
 **Parameters:**
 - `schema` - Optional schema definition (R list from `json_object()`, etc.) or built schema (from `json_schema()`)
 - `return_objects` - If `TRUE`, returns R objects instead of JSON strings
 - `ensure_ascii` - If `TRUE` (default), escape non-ASCII characters in the output JSON
+- `int64` - Policy for handling 64-bit integers: `"double"` (default), `"string"`, or `"bit64"`
 
 ### Schema Functions
 

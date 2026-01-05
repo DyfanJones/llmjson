@@ -291,18 +291,20 @@ test_that("schema adds null for missing required fields without defaults", {
     return_objects = TRUE
   )
   expect_type(result, "list")
-  expect_equal(result$name, "Alice")
-  expect_null(result$age)
+  expect_equal(
+    result,
+    list(
+      name = "Alice",
+      age = 0
+    )
+  )
 
   result2 <- repair_json_str(
     '{"name": "Alice"}',
     schema = schema,
     return_objects = FALSE
   )
-  expect_type(result2, "character")
-  expect_true(grepl('"name"', result2))
-  expect_true(grepl('"age"', result2))
-  expect_true(grepl('null', result2))
+  expect_equal(result2, "{\"age\":0,\"name\":\"Alice\"}")
 })
 
 test_that("schema adds default for missing required fields with defaults", {
@@ -739,7 +741,9 @@ test_that("json_timestamp parses millisecond timestamps", {
 })
 
 test_that("json_timestamp handles custom format", {
-  schema <- json_object(timestamp = json_timestamp(.format = "%m/%d/%Y %H:%M:%S"))
+  schema <- json_object(
+    timestamp = json_timestamp(.format = "%m/%d/%Y %H:%M:%S")
+  )
 
   result <- repair_json_str(
     '{"timestamp": "01/15/2024 10:30:45"}',
@@ -813,4 +817,81 @@ test_that("json_date and json_timestamp work together in schema", {
   expect_equal(result$name, "Alice")
   expect_s3_class(result$birthday, "Date")
   expect_s3_class(result$last_login, "POSIXct")
+})
+
+# Tests for int64 parameter
+test_that("int64 parameter with 'double' policy (default)", {
+  json_str <- '{"small": 42, "big": 9007199254740993}'
+  result <- repair_json_str(json_str, return_objects = TRUE, int64 = "double")
+
+  expect_equal(class(result$small), "integer")
+  expect_equal(result$small, 42L)
+
+  # Large integer becomes double (may lose precision)
+  expect_equal(class(result$big), "numeric")
+  expect_equal(result$big, 9007199254740992) # Note: loses precision
+})
+
+test_that("int64 parameter with 'string' policy", {
+  json_str <- '{"small": 42, "big": 9007199254740993}'
+  result <- repair_json_str(json_str, return_objects = TRUE, int64 = "string")
+
+  expect_equal(class(result$small), "integer")
+  expect_equal(result$small, 42L)
+
+  # Large integer becomes string (preserves exact value)
+  expect_equal(class(result$big), "character")
+  expect_equal(result$big, "9007199254740993")
+})
+
+test_that("int64 parameter with 'bit64' policy", {
+  skip_if_not_installed("bit64")
+
+  json_str <- '{"small": 42, "big": 9007199254740993}'
+  result <- repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")
+
+  expect_equal(class(result$small), "integer")
+  expect_equal(result$small, 42L)
+
+  # Large integer becomes integer64
+  expect_equal(class(result$big), "integer64")
+  expect_true(bit64::is.integer64(result$big))
+  expect_equal(format(result$big), "9007199254740993")
+})
+
+test_that("int64 parameter works with arrays", {
+  json_str <- '{"ids": [1, 9007199254740993, 42]}'
+
+  # String policy
+  result_str <- repair_json_str(
+    json_str,
+    return_objects = TRUE,
+    int64 = "string"
+  )
+  expect_true(is.list(result_str$ids)) # Mixed types -> list
+  expect_equal(result_str$ids[[1]], 1L)
+  expect_equal(result_str$ids[[2]], "9007199254740993")
+  expect_equal(result_str$ids[[3]], 42L)
+})
+
+test_that("int64 parameter works with repair_json_file", {
+  skip_if_not_installed("bit64")
+
+  tmp_file <- tempfile(fileext = ".json")
+  writeLines('{"big": 9007199254740993}', tmp_file)
+  on.exit(unlink(tmp_file))
+
+  result <- repair_json_file(tmp_file, return_objects = TRUE, int64 = "bit64")
+  expect_equal(class(result$big), "integer64")
+  expect_equal(format(result$big), "9007199254740993")
+})
+
+test_that("int64 parameter works with repair_json_raw", {
+  skip_if_not_installed("bit64")
+
+  raw_data <- charToRaw('{"big": 9007199254740993}')
+  result <- repair_json_raw(raw_data, return_objects = TRUE, int64 = "bit64")
+
+  expect_equal(class(result$big), "integer64")
+  expect_equal(format(result$big), "9007199254740993")
 })

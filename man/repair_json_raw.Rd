@@ -8,7 +8,8 @@ repair_json_raw(
   raw_bytes,
   schema = NULL,
   return_objects = FALSE,
-  ensure_ascii = TRUE
+  ensure_ascii = TRUE,
+  int64 = "double"
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ repair_json_raw(
 \item{return_objects}{Logical indicating whether to return R objects (TRUE) or JSON string (FALSE, default)}
 
 \item{ensure_ascii}{Logical; if TRUE, escape non-ASCII characters}
+
+\item{int64}{Policy for handling 64-bit integers: "double" (default, may lose precision), "string" (preserves exact value), or "bit64" (requires bit64 package)}
 }
 \value{
 A character string containing the repaired JSON, or an R object if return_objects is TRUE
@@ -31,5 +34,6 @@ This function repairs malformed JSON from a raw vector of bytes.
 raw_data <- charToRaw('{"key": "value",}')
 repair_json_raw(raw_data)
 repair_json_raw(raw_data, return_objects = TRUE)
+repair_json_raw(raw_data, return_objects = TRUE, int64 = "bit64")  # Use bit64 for large integers
 }
 }
