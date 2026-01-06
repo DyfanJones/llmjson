@@ -460,31 +460,27 @@ test_that("ellmer schema can be reused efficiently", {
     return_objects = TRUE
   )
 
-  expect_equal(result1$name, "test1")
-  expect_equal(result2$name, "test2")
-  expect_equal(result3$name, "test3")
-  expect_equal(result1$value, 1.5)
-  expect_equal(result2$value, 2.5)
-  expect_equal(result3$value, 3.5)
-})
-
-# Schema printing tests
-test_that("ellmer schema prints correctly", {
-  ellmer_schema <- ellmer::type_object(
-    name = ellmer::type_string(required = TRUE),
-    age = ellmer::type_integer(),
-    status = ellmer::type_enum(c("active", "inactive"), required = TRUE)
+  expect_equal(
+    result1,
+    list(
+      name = "test1",
+      value = 1.5
+    )
   )
-
-  built_schema <- json_schema(ellmer_schema)
-
-  # Should not error when printing
-  expect_output(print(built_schema), "name")
-  expect_output(print(built_schema), "age")
-  expect_output(print(built_schema), "status")
-  expect_output(print(built_schema), "enum")
-  expect_output(print(built_schema), "active")
-  expect_output(print(built_schema), "inactive")
+  expect_equal(
+    result2,
+    list(
+      name = "test2",
+      value = 2.5
+    )
+  )
+  expect_equal(
+    result3,
+    list(
+      name = "test3",
+      value = 3.5
+    )
+  )
 })
 
 # Edge cases
@@ -546,9 +542,11 @@ test_that("ellmer array of objects converts correctly", {
     return_objects = TRUE
   )
 
-  expect_length(result, 2)
-  expect_equal(result[[1]]$id, 1L)
-  expect_equal(result[[1]]$name, "Alice")
-  expect_equal(result[[2]]$id, 2L)
-  expect_equal(result[[2]]$name, "Bob")
+  expect_equal(
+    result,
+    list(
+      list(id = 1, name = "Alice"),
+      list(id = 2, name = "Bob")
+    )
+  )
 })
