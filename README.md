@@ -19,7 +19,7 @@
 - Auto-completes missing values with sensible defaults
 - Returns R objects directly with `return_objects = TRUE`
 - Schema validation and type conversion with intuitive schema builders
-- Control field presence with `.optional` and use `.default` for required fields
+- Control field presence with `.required` and use `.default` for missing required fields
 
 ## Installation
 
@@ -142,23 +142,23 @@ str(result)
 #>  $ email: chr "alice@example.com"
 ```
 
-### Optional Fields and Default Values
+### Required vs Optional Fields and Default Values
 
-Control how missing fields are handled with `.optional` and `.default` parameters:
+Control how missing fields are handled with `.required` and `.default` parameters:
 
-**Required fields** (`.optional = FALSE`, the default):
-- Missing fields are added with their `.default` value (or `null` if no default)
+**Required fields** (`.required = TRUE`):
+- Missing fields are added with their `.default` value (or their type's default if no explicit default)
 - Always appear in the output
 
-**Optional fields** (`.optional = TRUE`):
+**Optional fields** (`.required = FALSE`, the default):
 - Missing fields are omitted entirely from the output
 - Only appear if present in the input JSON
 
 ``` r
-# Example 1: Required field with default
+# Example 1: Required field with explicit default
 schema <- json_object(
-  name = json_string(),
-  age = json_integer(.default = 25L)  # required, will use default if missing
+  name = json_string(.required = TRUE),
+  age = json_integer(.default = 25L, .required = TRUE)  # required, will use default if missing
 )
 
 result <- repair_json_str('{"name": "Alice"}', schema = schema, return_objects = TRUE)
@@ -171,8 +171,8 @@ result
 
 # Example 2: Optional field (omitted when missing)
 schema <- json_object(
-  name = json_string(),
-  nickname = json_string(.optional = TRUE)  # optional, omitted if not in input
+  name = json_string(.required = TRUE),
+  nickname = json_string(.required = FALSE)  # optional, omitted if not in input
 )
 
 result <- repair_json_str('{"name": "Bob"}', schema = schema, return_objects = TRUE)
@@ -181,10 +181,10 @@ result
 #> [1] "Bob"
 # Note: nickname is not present since it was optional and missing from input
 
-# Example 3: Required field without default (gets null)
+# Example 3: Required field with type default
 schema <- json_object(
-  name = json_string(),
-  email = json_string()  # required, no default specified
+  name = json_string(.required = TRUE),
+  age = json_integer(.required = TRUE)  # required, will use type default (0L) if missing
 )
 
 result <- repair_json_str('{"name": "Charlie"}', schema = schema, return_objects = TRUE)
@@ -192,8 +192,8 @@ result
 #> $name
 #> [1] "Charlie"
 #>
-#> $email
-#> NULL
+#> $age
+#> [1] 0
 ```
 
 ### Nested Schemas and Arrays
@@ -269,8 +269,8 @@ repair_json_file("malformed.json")
 
 # With schema validation
 schema <- json_object(
-  name = json_string(),
-  age = json_integer(.default = 25L)  # required field with default
+  name = json_string(.required = TRUE),
+  age = json_integer(.default = 25L, .required = TRUE)  # required field with default
 )
 result <- repair_json_file("data.json", schema = schema, return_objects = TRUE)
 ```
@@ -376,15 +376,16 @@ All repair functions support the `schema`, `return_objects`, `ensure_ascii`, and
 ### Schema Functions
 
 - **`json_schema(schema)`** - Compile a schema definition for efficient reuse (5x performance improvement)
-- **`json_object(..., .optional)`** - Define a JSON object with named fields
-- **`json_integer(.default, .optional)`** - Integer field with optional defaults
-- **`json_number(.default, .optional)`** - Number/numeric field with optional defaults
-- **`json_string(.default, .optional)`** - String field with optional defaults
-- **`json_boolean(.default, .optional)`** - Boolean field with optional defaults
-- **`json_date(.default, .format, .optional)`** - Date field with format specification
-- **`json_timestamp(.default, .format, .tz, .optional)`** - POSIXct datetime field
-- **`json_array(items, .optional)`** - Array with specified item type
-- **`json_any(.optional)`** - Accept any JSON type
+- **`json_object(..., .required)`** - Define a JSON object with named fields
+- **`json_integer(.default, .required)`** - Integer field (default: 0L)
+- **`json_number(.default, .required)`** - Number/numeric field (default: 0.0)
+- **`json_string(.default, .required)`** - String field (default: "")
+- **`json_boolean(.default, .required)`** - Boolean field (default: FALSE)
+- **`json_enum(.values, .default, .required)`** - Enum field with allowed values (default: first value)
+- **`json_date(.default, .format, .required)`** - Date field with format specification
+- **`json_timestamp(.default, .format, .tz, .required)`** - POSIXct datetime field
+- **`json_array(items, .required)`** - Array with specified item type
+- **`json_any(.required)`** - Accept any JSON type
 
 ## Comparison with Similar Packages
 

@@ -324,12 +324,7 @@ json_schema.LLMJsonSchema <- function(schema, ...) {
 
 #' @rdname json_schema
 #' @export
-json_schema.S7_object <- function(schema, ...) {
-  # Check if this is an ellmer Type object
-  if (!inherits(schema, "ellmer::Type")) {
-    stop("S7 object must be an ellmer Type for schema conversion")
-  }
-
+`json_schema.ellmer::Type` <- function(schema, ...) {
   if (!requireNamespace("ellmer", quietly = TRUE)) {
     stop("Package 'ellmer' is required to convert ellmer types")
   }

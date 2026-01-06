@@ -2,8 +2,8 @@
 
 S3method("$",LLMJsonSchemaBuilt)
 S3method("[[",LLMJsonSchemaBuilt)
+S3method(json_schema,"ellmer::Type")
 S3method(json_schema,LLMJsonSchema)
-S3method(json_schema,S7_object)
 S3method(print,LLMJsonSchema)
 S3method(print,LLMJsonSchemaBuilt)
 export(json_any)
