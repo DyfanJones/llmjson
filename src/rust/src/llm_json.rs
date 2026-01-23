@@ -299,6 +299,7 @@ impl JsonRepairParser {
 
     fn parse_number(&mut self) -> Result<(), JsonRepairError> {
         let start_pos = self.pos;
+        let output_start = self.output.len();
 
         // Handle negative sign
         if self.current_char() == Some('-') {
@@ -318,6 +319,18 @@ impl JsonRepairParser {
                 } else {
                     break;
                 }
+            }
+        }
+
+        // Check if number is immediately followed by a letter (without delimiter)
+        // This indicates it's part of an identifier like "1a2b3c4d" in a UUID
+        if let Some(ch) = self.current_char() {
+            if ch.is_alphabetic() && !matches!(ch, 'e' | 'E') {
+                // Not a valid number, treat as unquoted string
+                self.pos = start_pos;
+                self.output.truncate(output_start);
+                self.append_char('"');
+                return self.parse_unquoted_string();
             }
         }
 
@@ -344,6 +357,52 @@ impl JsonRepairParser {
 
         // Parse exponent part
         if matches!(self.current_char(), Some('e') | Some('E')) {
+            // Peek ahead to check if this is a valid exponent
+            let mut peek_pos = self.pos + 1;
+
+            // Skip optional sign
+            if let Some(ch) = self.input.get(peek_pos) {
+                if matches!(ch, '+' | '-') {
+                    peek_pos += 1;
+                }
+            }
+
+            // Check if there's at least one digit after the optional sign
+            let has_digit = self.input.get(peek_pos).map_or(false, |ch| ch.is_ascii_digit());
+
+            if !has_digit {
+                // No digits after 'e' (e.g., "123e" or "123eabc" or "57eeeeb1")
+                // This is not a valid number, treat as unquoted string
+                self.pos = start_pos;
+                self.output.truncate(output_start);
+                self.append_char('"');
+                return self.parse_unquoted_string();
+            }
+
+            // Skip over digits in the exponent
+            let mut temp_pos = peek_pos;
+            while let Some(ch) = self.input.get(temp_pos) {
+                if ch.is_ascii_digit() {
+                    temp_pos += 1;
+                } else {
+                    break;
+                }
+            }
+
+            // Check what comes after the exponent digits
+            // If it's a character that suggests this is part of a larger identifier
+            // (like a hyphen in a UUID), treat as unquoted string
+            if let Some(ch) = self.input.get(temp_pos) {
+                if matches!(ch, '-' | '_') || ch.is_alphabetic() {
+                    // This looks like part of an identifier (e.g., UUID), not a number
+                    self.pos = start_pos;
+                    self.output.truncate(output_start);
+                    self.append_char('"');
+                    return self.parse_unquoted_string();
+                }
+            }
+
+            // Valid exponent - proceed with parsing
             self.append_char('e');
             self.advance();
 
@@ -352,7 +411,6 @@ impl JsonRepairParser {
                 self.advance();
             }
 
-            let before_exp_digits = self.pos;
             while let Some(ch) = self.current_char() {
                 if ch.is_ascii_digit() {
                     self.append_char(ch);
@@ -361,19 +419,13 @@ impl JsonRepairParser {
                     break;
                 }
             }
-
-            // If no digits after exponent, add zero
-            if self.pos == before_exp_digits {
-                self.append_char('0');
-            }
         }
 
         // If we didn't parse anything valid, it's not a number
         if self.pos == start_pos || (self.pos == start_pos + 1 && self.input[start_pos] == '-') {
             // Reset and treat as unquoted string
             self.pos = start_pos;
-            self.output
-                .truncate(self.output.len() - (self.pos - start_pos));
+            self.output.truncate(output_start);
             self.append_char('"');
             return self.parse_unquoted_string();
         }

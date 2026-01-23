@@ -999,15 +999,44 @@ test_that("repair_json_conn fails with non-connection input", {
 test_that("repair_json_conn uses optimized readChar for binary connections", {
   tmp_file <- tempfile(fileext = ".json")
   writeLines('{"name": "Alice", "age": 30}', tmp_file)
-  
+
   # Open as binary connection
   conn <- file(tmp_file, "rb")
   result <- repair_json_conn(conn, return_objects = TRUE)
   close(conn)
-  
+
   expect_type(result, "list")
   expect_equal(result$name, "Alice")
   expect_equal(result$age, 30)
-  
+
   unlink(tmp_file)
+})
+
+test_that("repair_json handles unquoted UUID values", {
+  # UUIDs that start with digits followed by 'e' should not be parsed as numbers
+  broken_json <- '{"rowId": 57eeeeb1-450b-482c-81b9-4be77e95dee2}'
+  result <- repair_json_str(broken_json, return_objects = TRUE)
+
+  expect_type(result, "list")
+  expect_equal(result$rowId, "57eeeeb1-450b-482c-81b9-4be77e95dee2")
+})
+
+test_that("repair_json handles various unquoted UUID patterns", {
+  # Test different UUID patterns that could be misparsed as numbers
+  test_cases <- list(
+    '{"id": 123e4567-e89b-12d3-a456-426614174000}',
+    '{"uuid": 9e89b12d-3a45-6426-6141-74000abcdef0}',
+    '{"key": 1a2b3c4d-5e6f-7890-abcd-ef1234567890}'
+  )
+
+  expected <- list(
+    "123e4567-e89b-12d3-a456-426614174000",
+    "9e89b12d-3a45-6426-6141-74000abcdef0",
+    "1a2b3c4d-5e6f-7890-abcd-ef1234567890"
+  )
+
+  for (i in seq_along(test_cases)) {
+    result <- repair_json_str(test_cases[[i]], return_objects = TRUE)
+    expect_equal(result[[1]], expected[[i]], info = paste("Test case", i))
+  }
 })
