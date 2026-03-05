@@ -39,7 +39,7 @@ install.packages('llmjson', repos = c('https://dyfanjones.r-universe.dev', 'http
 
 This package requires the Rust toolchain to be installed on your system. If you don't have Rust installed:
 
-- Install from <https://www.rust-lang.org/tools/install>
+- Install from <https://rust-lang.org/tools/install/>
 - Minimum required version: Rust 1.65.0
 
 ## Usage
