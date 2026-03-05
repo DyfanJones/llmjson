@@ -31,9 +31,21 @@ NULL
 #'
 #' # Handle large integers (beyond i32 range)
 #' json_str <- '{"id": 9007199254740993}'
-#' repair_json_str(json_str, return_objects = TRUE, int64 = "string")  # Preserves as "9007199254740993"
-#' repair_json_str(json_str, return_objects = TRUE, int64 = "double")  # May lose precision
-#' repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")   # Requires bit64 package
+#'
+#' # Preserves as "9007199254740993"
+#' repair_json_str(
+#'     json_str, return_objects = TRUE, int64 = "string"
+#' )
+#'
+#' # May lose precision
+#' repair_json_str(
+#'     json_str, return_objects = TRUE, int64 = "double"
+#' )
+#'
+#' # Requires bit64 package
+#' repair_json_str(
+#'     json_str, return_objects = TRUE, int64 = "bit64"
+#' )
 repair_json_str <- function(json_str, schema = NULL, return_objects = FALSE, ensure_ascii = TRUE, int64 = "double") .Call(wrap__repair_json_str, json_str, schema, return_objects, ensure_ascii, int64)
 
 #' Repair malformed JSON from a file

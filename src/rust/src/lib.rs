@@ -103,9 +103,21 @@ fn create_repair_options(ensure_ascii: bool, int64: &str) -> RepairOptions {
 ///
 /// # Handle large integers (beyond i32 range)
 /// json_str <- '{"id": 9007199254740993}'
-/// repair_json_str(json_str, return_objects = TRUE, int64 = "string")  # Preserves as "9007199254740993"
-/// repair_json_str(json_str, return_objects = TRUE, int64 = "double")  # May lose precision
-/// repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")   # Requires bit64 package
+///
+/// # Preserves as "9007199254740993"
+/// repair_json_str(
+///     json_str, return_objects = TRUE, int64 = "string"
+/// )
+///
+/// # May lose precision
+/// repair_json_str(
+///     json_str, return_objects = TRUE, int64 = "double"
+/// )
+///
+/// # Requires bit64 package
+/// repair_json_str(
+///     json_str, return_objects = TRUE, int64 = "bit64"
+/// )
 #[extendr]
 fn repair_json_str(
     json_str: &str,

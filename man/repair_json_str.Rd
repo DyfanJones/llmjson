@@ -38,9 +38,21 @@ repair_json_str('{"key": "value"}', return_objects = TRUE)  # Returns R list
 
 # Handle large integers (beyond i32 range)
 json_str <- '{"id": 9007199254740993}'
-repair_json_str(json_str, return_objects = TRUE, int64 = "string")  # Preserves as "9007199254740993"
-repair_json_str(json_str, return_objects = TRUE, int64 = "double")  # May lose precision
-repair_json_str(json_str, return_objects = TRUE, int64 = "bit64")   # Requires bit64 package
+
+# Preserves as "9007199254740993"
+repair_json_str(
+    json_str, return_objects = TRUE, int64 = "string"
+)
+
+# May lose precision
+repair_json_str(
+    json_str, return_objects = TRUE, int64 = "double"
+)
+
+# Requires bit64 package
+repair_json_str(
+    json_str, return_objects = TRUE, int64 = "bit64"
+)
 }
 \seealso{
 \code{\link[=repair_json_file]{repair_json_file()}}, \code{\link[=repair_json_raw]{repair_json_raw()}}, \code{\link[=repair_json_conn]{repair_json_conn()}}, \code{\link[=schema]{schema()}}, \code{\link[=json_schema]{json_schema()}}
