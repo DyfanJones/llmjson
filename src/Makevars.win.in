@@ -1,31 +1,51 @@
-TARGET = $(subst 64,x86_64,$(subst 86,i686,$(WIN)))-pc-windows-gnu
-LIBDIR = ./rust/target/$(TARGET)/@LIBDIR@
+TARGET = $(subst 64,x86_64,$(subst 32,i686,$(WIN)))-pc-windows-gnu
+
+TARGET_DIR = ./rust/target
+LIBDIR = $(TARGET_DIR)/$(TARGET)/@LIBDIR@
 STATLIB = $(LIBDIR)/libllmjson.a
 PKG_LIBS = -L$(LIBDIR) -lllmjson -lws2_32 -ladvapi32 -luserenv -lbcrypt -lntdll
 
-CARGO_HOME = $(CURDIR)/.cargo
-export CARGO_HOME
+all: $(SHLIB) rust_clean
 
-all: C_clean
+.PHONY: $(STATLIB)
 
 $(SHLIB): $(STATLIB)
 
 CARGOTMP = $(CURDIR)/.cargo
+VENDOR_DIR = vendor
 
 $(STATLIB):
-	if [ "$(NOT_CRAN)" != "true" ]; then \
-		if [ -f ./rust/vendor.tar.xz ]; then \
-			tar xf ./rust/vendor.tar.xz && \
-			mkdir -p $(CARGOTMP) && \
-			cp ./rust/vendor-config.toml $(CARGOTMP)/config.toml; \
-		fi \
-	fi && \
-	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
-	cargo build @CRAN_FLAGS@ @PROFILE@ --target=$(TARGET) --manifest-path=./rust/Cargo.toml --target-dir ./rust/target
-	@CLEAN_TARGET@
+	mkdir -p $(TARGET_DIR)/libgcc_mock
+	touch $(TARGET_DIR)/libgcc_mock/libgcc_eh.a
 
-C_clean:
-	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) $(CARGOTMP)
+  # If a vendor directory exists, it is used for offline compilation. Otherwise if
+  # vendor.tar.xz exists, it is unzipped and used for offline compilation.
+	if [ -d ./vendor ]; then \
+		echo "=== Using offline vendor directory ==="; \
+		mkdir -p $(CARGOTMP) && \
+		cp rust/vendor-config.toml $(CARGOTMP)/config.toml; \
+	elif [ -f ./rust/vendor.tar.xz ]; then \
+		echo "=== Using offline vendor tarball ==="; \
+		tar xf rust/vendor.tar.xz && \
+		mkdir -p $(CARGOTMP) && \
+		cp rust/vendor-config.toml $(CARGOTMP)/config.toml; \
+	fi
+
+	# Build the project using Cargo with additional flags
+	export CARGO_HOME=$(CARGOTMP) && \
+	export LIBRARY_PATH="$(LIBRARY_PATH);$(CURDIR)/$(TARGET_DIR)/libgcc_mock" && \
+	RUSTFLAGS="$(RUSTFLAGS) --print=native-static-libs" cargo build @CRAN_FLAGS@ --target=$(TARGET) --lib @PROFILE@ --manifest-path=rust/Cargo.toml --target-dir=$(TARGET_DIR)
+
+	# Generate wrappers
+	export CARGO_HOME=$(CARGOTMP) && \
+	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
+	cargo run @CRAN_FLAGS@ --bin document --target $(TARGET) --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR)
+
+	# Always clean up CARGOTMP
+	rm -Rf $(CARGOTMP);
+
+rust_clean: $(SHLIB)
+	rm -Rf $(CARGOTMP) $(VENDOR_DIR) @CLEAN_TARGET@
 
 clean:
-	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) rust/target $(CARGOTMP)
+	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) $(TARGET_DIR) $(VENDOR_DIR)
