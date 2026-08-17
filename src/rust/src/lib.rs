@@ -121,10 +121,10 @@ fn create_repair_options(ensure_ascii: bool, int64: &str) -> RepairOptions {
 #[extendr]
 fn repair_json_str(
     json_str: &str,
-    #[default = "NULL"] schema: Robj,
-    #[default = "FALSE"] return_objects: bool,
-    #[default = "TRUE"] ensure_ascii: bool,
-    #[default = "\"double\""] int64: &str,
+    #[extendr(default = "NULL")] schema: Robj,
+    #[extendr(default = "FALSE")] return_objects: bool,
+    #[extendr(default = "TRUE")] ensure_ascii: bool,
+    #[extendr(default = "\"double\"")] int64: &str,
 ) -> Robj {
     let options: RepairOptions = create_repair_options(ensure_ascii, int64);
 
@@ -137,12 +137,7 @@ fn repair_json_str(
             }
         }
         Err(e) => {
-            rprintln!("Error: Failed to repair JSON: {}", e);
-            if return_objects {
-                r!(NULL)
-            } else {
-                Robj::from("{}")
-            }
+            throw_r_error(&format!("Failed to repair JSON: {}", e));
         }
     }
 }
@@ -168,10 +163,10 @@ fn repair_json_str(
 #[extendr]
 fn repair_json_file(
     path: &str,
-    #[default = "NULL"] schema: Robj,
-    #[default = "FALSE"] return_objects: bool,
-    #[default = "TRUE"] ensure_ascii: bool,
-    #[default = "\"double\""] int64: &str,
+    #[extendr(default = "NULL")] schema: Robj,
+    #[extendr(default = "FALSE")] return_objects: bool,
+    #[extendr(default = "TRUE")] ensure_ascii: bool,
+    #[extendr(default = "\"double\"")] int64: &str,
 ) -> Robj {
     if !Path::new(path).exists() {
         throw_r_error(&format!(
@@ -225,10 +220,10 @@ fn repair_json_file(
 #[extendr]
 fn repair_json_raw(
     raw_bytes: &[u8],
-    #[default = "NULL"] schema: Robj,
-    #[default = "FALSE"] return_objects: bool,
-    #[default = "TRUE"] ensure_ascii: bool,
-    #[default = "\"double\""] int64: &str,
+    #[extendr(default = "NULL")] schema: Robj,
+    #[extendr(default = "FALSE")] return_objects: bool,
+    #[extendr(default = "TRUE")] ensure_ascii: bool,
+    #[extendr(default = "\"double\"")] int64: &str,
 ) -> Robj {
     if raw_bytes.is_empty() {
         throw_r_error("Empty raw vector provided. Please provide valid JSON bytes.");

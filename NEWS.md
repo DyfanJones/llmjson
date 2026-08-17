@@ -1,3 +1,15 @@
+# llmjson 0.2.0
+
+## Bug fixes
+
+* `repair_json_str()` no longer silently swallows unrepairable JSON and returns `"{}"`/`NULL` on failure — it now raises a proper R error, consistent with `repair_json_file()` and `repair_json_raw()`.
+* Fixed a CRAN check NOTE about calling non-API R entry points (`R_NamespaceRegistry`) by upgrading the vendored Rust `extendr-api` dependency to 0.9.0.
+
+## Other changes
+
+* Added Windows ARM64 (`aarch64-pc-windows-gnullvm`) build support and CI coverage.
+* Removed unused internal Rust code (`JsonRepairError::UnrepairableJson`, `RepairOptions::return_objects`, `RepairOptions::stream_stable`) that had no effect on behavior.
+
 # llmjson 0.1.0
 
 ## Initial Release

@@ -52,8 +52,6 @@ use thiserror::Error;
 /// Errors that can occur during JSON repair
 #[derive(Debug, Error)]
 pub enum JsonRepairError {
-    #[error("JSON string is too broken to repair")]
-    UnrepairableJson,
     #[error("IO error: {0}")]
     IoError(#[from] io::Error),
     #[error("Serde JSON error: {0}")]
@@ -84,12 +82,8 @@ impl Default for Int64Policy {
 pub struct RepairOptions {
     /// Skip validation with serde_json for performance
     pub skip_json_loads: bool,
-    /// Return objects instead of JSON strings
-    pub return_objects: bool,
     /// Preserve non-ASCII characters
     pub ensure_ascii: bool,
-    /// Handle streaming/incomplete JSON
-    pub stream_stable: bool,
     /// Policy for handling 64-bit integers
     pub int64_policy: Int64Policy,
 }
@@ -98,9 +92,7 @@ impl Default for RepairOptions {
     fn default() -> Self {
         Self {
             skip_json_loads: false,
-            return_objects: false,
             ensure_ascii: true,
-            stream_stable: false,
             int64_policy: Int64Policy::default(),
         }
     }
