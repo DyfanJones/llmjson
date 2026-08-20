@@ -1,3 +1,9 @@
+# llmjson 0.2.1
+
+##
+
+* fix url redirect
+
 # llmjson 0.2.0
 
 ## Bug fixes
